@@ -26,8 +26,6 @@ class Future_Manager(object):
             self.handler_f = Handler_F()
             if contracts[contr]['first_handler'] == 't':
                 self.current_handler = self.handler_t
-            elif contracts[contr]['first_handler'] == '1t':
-                self.current_handler = self.handler_1t
             elif contracts[contr]['first_handler'] == 'w':
                 self.current_handler = self.handler_w
             elif contracts[contr]['first_handler'] == 'f':
@@ -42,43 +40,20 @@ class Future_Manager(object):
             FH.catch = False
             FH.balance = False
             self.current_handler = self.handler_f
-        elif self.current_handler.tip == 'w':
-            if FH.forward_goods + FH.backward_goods + FH.balance_overflow < FH.abandon_goods:
-                FH.catch = False
-                FH.balance = False
-                FH.t_tail = -1
-                self.current_handler = self.handler_t
         elif FH.forward_goods + FH.backward_goods + FH.balance_overflow > FH.endure_goods:
             FH.catch = False
             FH.balance = False
             self.current_handler = self.handler_w
-        else:
-            if self.current_handler.tip == 't':
-                if FH.tick_price >= FH.t_tail and FH.t_f < FH.t_b:
-                    self.current_handler = self.handler_1t
-                    FH.t_head = sys.float_info.min
-                elif FH.tick_price <= FH.t_tail and FH.t_f > FH.t_b:
-                    self.current_handler = self.handler_1t
-                    FH.t_head = sys.float_info.max
-                print (self.current_handler.tip,FH.tick_price,FH.t_tail)
-            elif self.current_handler.tip == '1t':
-                if FH.tick_price <= FH.t_head and FH.t_f < FH.t_b:
-                    self.current_handler = self.handler_t
-                    FH.t_tail = sys.float_info.max
-                if FH.tick_price >= FH.t_head and FH.t_f > FH.t_b:
-                    self.current_handler = self.handler_t
-                    FH.t_tail = sys.float_info.min
-                print (self.current_handler.tip,FH.tick_price,FH.t_head)
-            else:
-                if FH.forward_goods + FH.backward_goods + FH.balance_overflow < FH.abandon_goods:
-                    FH.catch = False
-                    FH.balance = False
-                    FH.t_tail = -1
-                    self.current_handler = self.handler_t
-                else:
-                    FH.catch = False
-                    FH.balance = False
-                    self.current_handler = self.handler_f
+        elif self.current_handler.tip == 'w':
+            if FH.forward_goods + FH.backward_goods + FH.balance_overflow < 0.0:
+                FH.catch = False
+                FH.balance = False
+                self.current_handler = self.handler_t
+        elif  self.current_handler.tip == 'f':
+            if FH.forward_goods + FH.backward_goods + FH.balance_overflow < FH.abandon_goods:
+                FH.catch = False
+                FH.balance = False
+                self.current_handler = self.handler_t
 
     def run(self):
         self.get_handler()

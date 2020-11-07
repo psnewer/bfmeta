@@ -116,18 +116,18 @@ class Handler_1T(FH):
                 self.forward_balance_ticket = int(FH.forward_positions.iloc[0]['ticket'])
                 print('d1', FH.forward_position_size-FH.backward_position_size*FH.T_std,FH.forward_positions.iloc[0]['volume'])
             else:
-                self.forward_balance_size = float(format(min(FH.forward_position_size-FH.backward_position_size/FH.T_std,FH.forward_positions.iloc[0]['volume']*min(1.0,max(0.0,FH.balance_overflow)/FH.forward_positions.iloc[0]['profit'])),'.2f'))
+                self.forward_balance_size = float(format(min(FH.forward_position_size-FH.backward_position_size/FH.T_std,FH.forward_positions.iloc[0]['volume']*min(1.0,max(0.0,FH.balance_overflow)/abs(FH.forward_positions.iloc[0]['profit']))),'.2f'))
                 self.forward_balance_ticket = int(FH.forward_positions.iloc[0]['ticket'])
-                print('d2', FH.forward_position_size-FH.backward_position_size/FH.T_std,FH.forward_positions.iloc[0]['volume']*min(1.0,max(0.0,FH.balance_overflow)/FH.forward_positions.iloc[0]['profit']))
+                print('d2', FH.forward_position_size-FH.backward_position_size/FH.T_std,FH.forward_positions.iloc[0]['volume']*min(1.0,max(0.0,FH.balance_overflow)/abs(FH.forward_positions.iloc[0]['profit'])))
         if self.backward_gap_balance:
             if FH.t_b >= 0.0:
                 self.backward_balance_size = float(format(min(FH.backward_position_size-FH.forward_position_size*FH.T_std,FH.backward_positions.iloc[0]['volume']),'.2f'))
                 self.backward_balance_ticket = int(FH.backward_positions.iloc[0]['ticket'])
                 print('d3', FH.backward_position_size-FH.forward_position_size*FH.T_std,FH.backward_positions.iloc[0]['volume'])
             else:
-                self.backward_balance_size = float(format(min(FH.backward_position_size-FH.forward_position_size/FH.T_std,FH.backward_positions.iloc[0]['volume']*min(1.0,max(0.0,FH.balance_overflow)/FH.backward_positions.iloc[0]['profit'])),'.2f'))
+                self.backward_balance_size = float(format(min(FH.backward_position_size-FH.forward_position_size/FH.T_std,FH.backward_positions.iloc[0]['volume']*min(1.0,max(0.0,FH.balance_overflow)/abs(FH.backward_positions.iloc[0]['profit']))),'.2f'))
                 self.backward_balance_ticket = int(FH.backward_positions.iloc[0]['ticket'])
-                print('d4', FH.backward_position_size-FH.forward_position_size/FH.T_std,FH.backward_positions.iloc[0]['volume']*min(1.0,max(0.0,FH.balance_overflow)/FH.backward_positions.iloc[0]['profit']))
+                print('d4', FH.backward_position_size-FH.forward_position_size/FH.T_std,FH.backward_positions.iloc[0]['volume']*min(1.0,max(0.0,FH.balance_overflow)/abs(FH.backward_positions.iloc[0]['profit'])))
 
         self.forward_catch = False
         self.forward_catch_size = 0

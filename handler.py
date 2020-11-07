@@ -24,6 +24,7 @@ class FH(object):
     backward_sprint = False
     forward_band_price = -1.0
     backward_band_price = -1.0
+    T_guide = 1.0
     _T = None
     T_std = None
     S_up = 0.0
@@ -89,11 +90,11 @@ class FH(object):
             FH.backward_entry_price = FH.backward_value / FH.backward_position_size / 100000
 
         if FH.forward_position_size > 0:
-            FH.t_f = FH.bid_1 - FH.forward_entry_price
+            FH.t_f = FH.forward_profit
         else:
             FH.t_f = 0.0
         if FH.backward_position_size > 0:
-            FH.t_b = FH.backward_entry_price - FH.ask_1
+            FH.t_b = FH.backward_profit
         else:
             FH.t_b = 0.0
 
@@ -153,7 +154,6 @@ class FH(object):
             FH.balance = False
 
         print('step', FH.step_soft, FH.step_hard)
-
         FH.forward_mom = False
         FH.backward_mom = False
         FH.co = 0.0
@@ -193,9 +193,9 @@ class FH(object):
             FH.backward_goods = 0.0
         else:
             FH.backward_goods = FH.backward_profit
-        if FH.forward_position_size > 0:
+        if FH.forward_position_size > 0 and FH.forward_positions.iloc[0]['volume'] > 0.0 and FH.forward_positions.iloc[0]['value'] > 0.0:
             FH.limit_value = FH.forward_positions.iloc[0]['value']*FH.limit_size/FH.forward_positions.iloc[0]['volume']
-        elif FH.backward_position_size > 0:
+        elif FH.backward_position_size > 0 and FH.backward_positions.iloc[0]['volume'] > 0.0 and FH.backward_positions.iloc[0]['value'] > 0.0:
             FH.limit_value = FH.backward_positions.iloc[0]['value']*FH.limit_size/FH.backward_positions.iloc[0]['volume']
         else:
             FH.limit_value = 0.0
@@ -203,7 +203,7 @@ class FH(object):
         FH.endure_goods = FH.surplus_endure/FH.tick_price * FH.limit_value
 
         if FH.account_from == 0:
-            position_deals = mt5.history_deals_get(time.time()-24*3600, time.time()+24*3600, group=FH.contract)
+            position_deals = mt5.history_deals_get(0, time.time()+24*3600, group=FH.contract)
             if len(position_deals) > 0:
                 df = pd.DataFrame(list(position_deals), columns=position_deals[0]._asdict().keys()).sort_values(
                     by='time_msc')
