@@ -90,28 +90,21 @@ class Handler_T(FH):
         self.backward_gap_balance = False
         self.backward_balance_size = 0
         if FH.balance:
-            if FH.t_f < 0.0 and FH.t_b >= 0.0:
+            if FH.t_f < FH.t_b:
                 if FH.forward_stable_price and FH._T < FH.T_std:
                     if FH.tick_price >= FH.t_dn:
                         self.forward_gap_balance = True
                 elif FH.backward_stable_price and FH._T > FH.T_std:
                     if FH.tick_price <= FH.t_up:
-                        self.backward_gap_balance = True
-            elif FH.t_b < 0.0 and FH.t_f >= 0.0:
+                        if FH.t_b > 0.0:
+                            self.backward_gap_balance = True
+            elif FH.t_f > FH.t_b:
                 if FH.backward_stable_price and FH._T < FH.T_std:
                     if FH.tick_price <= FH.t_dn:
                         self.backward_gap_balance = True
                 elif FH.forward_stable_price and FH._T > FH.T_std:
                     if FH.tick_price >= FH.t_up:
-                        self.forward_gap_balance = True
-            elif FH.t_f < 0.0 and FH.t_b < 0.0:
-                if FH.t_f > FH.t_b:
-                    if FH.backward_stable_price and FH._T < FH.T_std:
-                        if FH.tick_price <= FH.t_dn:
-                            self.backward_gap_balance = True
-                else:
-                    if FH.forward_stable_price and FH._T < FH.T_std:
-                        if FH.tick_price >= FH.t_dn:
+                        if FH.t_f > 0.0:
                             self.forward_gap_balance = True
 
         if self.forward_gap_balance:
@@ -139,7 +132,7 @@ class Handler_T(FH):
         self.backward_catch_size = 0
         print (FH._T,FH.T_std,FH.forward_stable_price,FH.backward_stable_price)
         if FH.catch:
-            if FH.t_f < 0.0 and FH.t_b >= 0.0:
+            if FH.t_f < FH.t_b:
                 if FH._T > FH.T_std:
                     if FH.backward_stable_price and FH.tick_price <= FH.S_up:
                         self.forward_catch = True
@@ -150,7 +143,7 @@ class Handler_T(FH):
                         self.backward_catch = True
                         self.backward_catch_size = float(format(min(FH.forward_position_size*FH.T_std-FH.backward_position_size,FH.backward_limit-FH.backward_position_size),'.2f'))
                         print ('bbbb',FH.forward_position_size*FH.T_std-FH.backward_position_size,FH.backward_limit-FH.backward_position_size)
-            elif FH.t_b < 0.0 and FH.t_f >= 0.0:
+            elif FH.t_f > FH.t_b:
                 if FH._T > FH.T_std:
                     if FH.forward_stable_price and FH.tick_price >= FH.S_up:
                         self.backward_catch = True
@@ -161,18 +154,6 @@ class Handler_T(FH):
                         self.forward_catch = True
                         self.forward_catch_size = float(format(min(FH.backward_position_size*FH.T_std-FH.forward_position_size,FH.forward_limit-FH.forward_position_size),'.2f'))
                         print ('cccc',FH.backward_position_size*FH.T_std-FH.forward_position_size,FH.forward_limit-FH.forward_position_size)
-            elif FH.t_f < 0.0 and FH.t_b < 0.0:
-                if FH._T < FH.T_std:
-                    if FH.t_f > FH.t_b:
-                        if FH.backward_stable_price and FH.tick_price <= FH.S_dn:
-                            self.forward_catch = True
-                            self.forward_catch_size = float(format(min(FH.backward_position_size*FH.T_std-FH.forward_position_size,FH.forward_limit-FH.forward_position_size),'.2f'))
-                            print ('cccc',FH.backward_position_size*FH.T_std-FH.forward_position_size,FH.forward_limit-FH.forward_position_size)
-                    else:
-                        if FH.forward_stable_price and FH.tick_price >= FH.S_dn:
-                            self.backward_catch = True
-                            self.backward_catch_size = float(format(min(FH.forward_position_size*FH.T_std-FH.backward_position_size,FH.backward_limit-FH.backward_position_size),'.2f'))
-                            print ('bbbb',FH.forward_position_size*FH.T_std-FH.backward_position_size,FH.backward_limit-FH.backward_position_size)
 
     def put_position(self):
 

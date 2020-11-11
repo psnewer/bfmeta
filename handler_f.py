@@ -111,7 +111,7 @@ class Handler_F(FH):
         if not self.forward_increase_clear:
             if FH.forward_position_size < FH.forward_limit:
                 if self.forward_catch and self.forward_catch_size > 0:
-                    mt5.order_send({"action": mt5.TRADE_ACTION_DEAL, "symbol": FH.contract,
+                    res=mt5.order_send({"action": mt5.TRADE_ACTION_DEAL, "symbol": FH.contract,
                                     "type": mt5.ORDER_TYPE_BUY, "volume": self.forward_catch_size,
                                     "price": FH.ask_1, "deviation": 0, "magic": 0})
         if not self.forward_reduce_clear and self.forward_gap_balance:

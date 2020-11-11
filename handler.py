@@ -10,11 +10,11 @@ import numpy as np
 from conf import *
 
 class FH(object):
-    balance_overflow = 0.0
+    balance_overflow = 3.4530000000000003
     account_from = 0
     order_from = 0
     balance_rt = 1.0
-    goods = 0.0
+    goods = 3.99
     forward_goods = 0.0
     backward_goods = 0.0
     limit_value = 0.0
@@ -203,24 +203,26 @@ class FH(object):
         FH.endure_goods = FH.surplus_endure/FH.tick_price * FH.limit_value
 
         if FH.account_from == 0:
-            position_deals = mt5.history_deals_get(0, time.time()+24*3600, group=FH.contract)
+            position_deals = mt5.history_deals_get(time.time()-24*3600, time.time()+24*3600, group=FH.contract)
             if len(position_deals) > 0:
                 df = pd.DataFrame(list(position_deals), columns=position_deals[0]._asdict().keys()).sort_values(
                     by='time_msc')
                 FH.account_from = df.iloc[-1]['time_msc'] * 0.001
                 FH.order_from =  df.iloc[-1]['order']
+            else:
+                FH.account_from = time.time()
+                FH.order_from = 0
 
-        if FH.t_f < 0.0 and FH.t_b >= 0.0:
-            FH._T = float(FH.backward_position_size) / float(FH.forward_position_size)
-        elif FH.t_b < 0.0 and FH.t_f >= 0.0:
-            FH._T = float(FH.forward_position_size) / float(FH.backward_position_size)
-        elif FH.t_f < 0.0 and FH.t_b < 0.0:
-            if FH.t_f > FH.t_b:
+        if FH.t_f <= FH.t_b:
+            if FH.t_f != 0:
+                FH._T = float(FH.backward_position_size) / float(FH.forward_position_size)
+            else:
+                FH._T = 1.0
+        elif FH.t_f >= FH.t_b:
+            if FH.t_b != 0:
                 FH._T = float(FH.forward_position_size) / float(FH.backward_position_size)
             else:
-                FH._T = float(FH.backward_position_size) / float(FH.forward_position_size)
-        elif FH.t_f >= 0.0 and FH.t_b >= 0.0:
-            FH._T = 0.61
+                FH._T = 1.0
 
         if FH.t_f >= 0 and FH.t_b >= 0:
             FH.balance_overflow = 0.0
