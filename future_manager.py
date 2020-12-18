@@ -15,7 +15,7 @@ import time
 
 class Future_Manager(object):
     def __init__(self):
-        f_exp = codecs.open('./experiment.conf', 'r', encoding='utf-8')
+        f_exp = codecs.open('./bucket/experiment_XAUUSD.conf', 'r', encoding='utf-8')
         data_algs = json.load(f_exp)
         contracts = data_algs['contract']
         for contr in contracts:
@@ -50,19 +50,20 @@ class Future_Manager(object):
                 FH.balance = False
                 self.current_handler = self.handler_t
         elif  self.current_handler.tip == 'f':
-            if FH.forward_goods + FH.backward_goods + FH.balance_overflow < FH.abandon_goods:
+            if abs(FH.forward_position_size - FH.limit_size) < 0.001 and abs(FH.backward_position_size - FH.limit_size) < 0.001:
                 FH.catch = False
                 FH.balance = False
                 self.current_handler = self.handler_t
 
     def run(self):
         self.get_handler()
-#        try:
-        self.current_handler.get_flag();
-        self.current_handler.put_position();
-        time.sleep(1)
-#        except Exception as e:
-#            print("Exception when calling FuturesApi: %s\n" % e)
+        try:
+            self.current_handler.get_flag();
+            self.current_handler.put_position();
+            time.sleep(1)
+        except Exception as e:
+            print("Exception when calling FuturesApi: %s\n" % e)
+            send_email(e)
 #            dic_clear = True
 #
 #            try:

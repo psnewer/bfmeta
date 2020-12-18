@@ -10,11 +10,11 @@ import numpy as np
 from conf import *
 
 class FH(object):
-    balance_overflow = 3.4530000000000003
+    balance_overflow = 6.498
     account_from = 0
     order_from = 0
     balance_rt = 1.0
-    goods = 3.99
+    goods = 7.22
     forward_goods = 0.0
     backward_goods = 0.0
     limit_value = 0.0
@@ -26,7 +26,7 @@ class FH(object):
     backward_band_price = -1.0
     T_guide = 1.0
     _T = None
-    T_std = None
+    T_std = 1.0
     S_up = 0.0
     S_dn = 0.0
     t_up = 0.0
@@ -41,8 +41,10 @@ class FH(object):
 
     def __init__(self,contract = '',contract_params = {}):
         FH.contract = contract
+        FH.quanto = contract_params['quanto']
         FH.T_rt =  contract_params['T_rt']
         FH.limit_size = contract_params['limit_size']
+        FH.limit_spread = contract_params['limit_spread']
         FH.balance_rt = contract_params['balance_rt']
         FH.surplus_abandon = contract_params['surplus_abandon']
         FH.surplus_endure = contract_params['surplus_endure']
@@ -105,13 +107,14 @@ class FH(object):
 
         FH.forward_stable_price = False
         FH.backward_stable_price = False
-        if len(candles) > 0:
-            o = float(candles[len(candles)-1]['open'])
-            c = float(candles[len(candles)-1]['close'])
-            if (c - o) < 0.0:
-                FH.forward_stable_price = True
-            if (c - o) > -0.0:
-                FH.backward_stable_price = True
+        if FH.ask_1 - FH.bid_1 < FH.limit_spread:
+            if len(candles) > 0:
+                o = float(candles[len(candles)-1]['open'])
+                c = float(candles[len(candles)-1]['close'])
+                if (c - o) < 0.0:
+                    FH.forward_stable_price = True
+                if (c - o) > -0.0:
+                    FH.backward_stable_price = True
 
         if len(candles_5m) > 10:
             abs5m = []
@@ -122,8 +125,8 @@ class FH(object):
             abs5m = np.nan_to_num(abs5m)
             med_5m = np.median(abs5m)
             max_5m = np.max(abs5m)
-            FH.step_soft = max(FH.step_soft_std,max_5m)
             FH.std_mom = max(FH.std_mom_std,med_5m)
+            #FH.step_soft = max(FH.step_soft_std, max_5m)
 
         if len(candles_1h) > 10:
             abs1h = []
@@ -136,6 +139,7 @@ class FH(object):
             med_1h = np.median(abs1h)
             FH.std_sprint = max(FH.std_sprint_std,med_1h)
             FH.step_hard = max(FH.step_hard_std,max_1h)
+            FH.step_soft = max(FH.step_soft_std, max_1h)
 
         if FH.t_f > FH.t_b:
             FH.current_side = 'forward'
@@ -193,9 +197,9 @@ class FH(object):
             FH.backward_goods = 0.0
         else:
             FH.backward_goods = FH.backward_profit
-        if FH.forward_position_size > 0 and FH.forward_positions.iloc[0]['volume'] > 0.0 and FH.forward_positions.iloc[0]['value'] > 0.0:
+        if FH.forward_position_size > 0.001:
             FH.limit_value = FH.forward_positions.iloc[0]['value']*FH.limit_size/FH.forward_positions.iloc[0]['volume']
-        elif FH.backward_position_size > 0 and FH.backward_positions.iloc[0]['volume'] > 0.0 and FH.backward_positions.iloc[0]['value'] > 0.0:
+        elif FH.backward_position_size > 0.001:
             FH.limit_value = FH.backward_positions.iloc[0]['value']*FH.limit_size/FH.backward_positions.iloc[0]['volume']
         else:
             FH.limit_value = 0.0
@@ -224,5 +228,5 @@ class FH(object):
             else:
                 FH._T = 1.0
 
-        if FH.t_f >= 0 and FH.t_b >= 0:
+        if FH.forward_position_size < 0.001 and FH.backward_position_size < 0.001:
             FH.balance_overflow = 0.0

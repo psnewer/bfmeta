@@ -27,18 +27,9 @@ class Handler_F(FH):
                 FH.order_from = item.order
                 FH.balance_overflow += float(item.profit)
 
-        self.forward_sow = False
-        self.backward_sow = False
         if FH.forward_position_size == 0 and FH.backward_position_size == 0:
-            if not FH.forward_sprint:
-                self.forward_target_size = FH.limit_size
-            elif not FH.backward_sprint:
-                self.backward_target_size = FH.limit_size
-        elif FH.forward_goods + FH.backward_goods + FH.balance_overflow < FH.abandon_goods:
-            if FH.forward_position_size == 0:
-                self.forward_target_size = FH.backward_position_size
-            elif FH.backward_position_size == 0:
-                self.backward_target_size = FH.forward_position_size
+            self.forward_target_size = FH.limit_size
+            self.backward_target_size = FH.limit_size
 
         self.forward_catch = False
         self.backward_catch = False
@@ -46,13 +37,13 @@ class Handler_F(FH):
         if FH.forward_position_size >= self.forward_target_size:
             self.forward_target_size = 0
         else:
-            if FH.backward_stable_price:
+            if FH.ask_1 - FH.bid_1 < FH.limit_spread:
                 self.forward_catch = True
                 self.forward_catch_size = self.forward_target_size - FH.forward_position_size
         if FH.backward_position_size >= self.backward_target_size:
             self.backward_target_size = 0
         else:
-            if FH.forward_stable_price:
+            if FH.ask_1 - FH.bid_1 < FH.limit_spread:
                 self.backward_catch = True
                 self.backward_catch_size = self.backward_target_size - FH.backward_position_size
 
@@ -111,7 +102,7 @@ class Handler_F(FH):
         if not self.forward_increase_clear:
             if FH.forward_position_size < FH.forward_limit:
                 if self.forward_catch and self.forward_catch_size > 0:
-                    res=mt5.order_send({"action": mt5.TRADE_ACTION_DEAL, "symbol": FH.contract,
+                    mt5.order_send({"action": mt5.TRADE_ACTION_DEAL, "symbol": FH.contract,
                                     "type": mt5.ORDER_TYPE_BUY, "volume": self.forward_catch_size,
                                     "price": FH.ask_1, "deviation": 0, "magic": 0})
         if not self.forward_reduce_clear and self.forward_gap_balance:
