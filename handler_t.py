@@ -149,25 +149,25 @@ class Handler_T(FH):
         if FH.catch:
             if FH.t_f < FH.t_b:
                 if FH._T > FH.T_std:
-                    if FH.backward_stable_price and FH.tick_price <= FH.S_up:
+                    if FH.backward_stable_price and FH.tick_price <= FH.S_up and FH.goods_rt > FH.catch_rt:
                         self.forward_catch = True
-                        self.forward_catch_size = float(format(min(FH.backward_position_size/FH.T_std-FH.forward_position_size,FH.forward_limit-FH.forward_position_size),FH.quanto))
+                        self.forward_catch_size = float(format(min(FH.backward_position_size/FH.T_std-FH.forward_position_size,FH.forward_limit-FH.forward_position_size,FH.tap),FH.quanto))
                         print ('1111',FH.backward_position_size/FH.T_std-FH.forward_position_size,FH.forward_limit-FH.forward_position_size)
                 elif FH._T < FH.T_std:
                     if FH.forward_stable_price and FH.tick_price >= FH.S_dn:
                         self.backward_catch = True
-                        self.backward_catch_size = float(format(min(FH.forward_position_size*FH.T_std-FH.backward_position_size,FH.backward_limit-FH.backward_position_size),FH.quanto))
+                        self.backward_catch_size = float(format(min(FH.forward_position_size*FH.T_std-FH.backward_position_size,FH.backward_limit-FH.backward_position_size,FH.tap),FH.quanto))
                         print ('bbbb',FH.forward_position_size*FH.T_std-FH.backward_position_size,FH.backward_limit-FH.backward_position_size)
             elif FH.t_f > FH.t_b:
                 if FH._T > FH.T_std:
-                    if FH.forward_stable_price and FH.tick_price >= FH.S_up:
+                    if FH.forward_stable_price and FH.tick_price >= FH.S_up and FH.goods_rt > FH.catch_rt:
                         self.backward_catch = True
-                        self.backward_catch_size = float(format(min(FH.forward_position_size/FH.T_std-FH.backward_position_size,FH.backward_limit-FH.backward_position_size),FH.quanto))
+                        self.backward_catch_size = float(format(min(FH.forward_position_size/FH.T_std-FH.backward_position_size,FH.backward_limit-FH.backward_position_size,FH.tap),FH.quanto))
                         print ('2222',FH.forward_position_size/FH.T_std-FH.backward_position_size,FH.backward_limit-FH.backward_position_size)
                 elif FH._T < FH.T_std:
                     if FH.backward_stable_price and FH.tick_price <= FH.S_dn:
                         self.forward_catch = True
-                        self.forward_catch_size = float(format(min(FH.backward_position_size*FH.T_std-FH.forward_position_size,FH.forward_limit-FH.forward_position_size),FH.quanto))
+                        self.forward_catch_size = float(format(min(FH.backward_position_size*FH.T_std-FH.forward_position_size,FH.forward_limit-FH.forward_position_size,FH.tap),FH.quanto))
                         print ('cccc',FH.backward_position_size*FH.T_std-FH.forward_position_size,FH.forward_limit-FH.forward_position_size)
 
     def put_position(self):
@@ -228,10 +228,16 @@ class Handler_T(FH):
         if not self.forward_reduce_clear and self.forward_gap_balance:
             if FH.forward_position_size > 0:
                 if self.forward_balance_size > 0:
-                    mt5.order_send({"action": mt5.TRADE_ACTION_DEAL, "symbol": FH.contract,
-                                    "type": mt5.ORDER_TYPE_SELL, "position": self.forward_balance_ticket,
-                                    "volume": self.forward_balance_size, "price": FH.bid_1,
-                                    "deviation": 0, "magic": 1000})
+                    if (FH._T > FH.by_rt and FH.goods_rt > FH.catch_rt) or FH.t_f < FH.t_b:
+                        mt5.order_send({"action": mt5.TRADE_ACTION_DEAL, "symbol": FH.contract,
+                                        "type": mt5.ORDER_TYPE_SELL, "position": self.forward_balance_ticket,
+                                        "volume": self.forward_balance_size, "price": FH.bid_1,
+                                        "deviation": 0, "magic": 1000})
+                    elif FH.forward_position_size > 0.001 and FH.backward_position_size > 0.001:
+                        mt5.order_send({"action": mt5.TRADE_ACTION_CLOSE_BY,
+                                        "position": self.forward_balance_ticket,
+                                        "position_by": int(FH.backward_positions.iloc[0]['ticket']),
+                                        "magic": 1001})
 
         if not self.backward_increase_clear:
             if FH.backward_position_size < FH.backward_limit:
@@ -242,7 +248,13 @@ class Handler_T(FH):
         if not self.backward_reduce_clear and self.backward_gap_balance:
             if FH.backward_position_size > 0:
                 if self.backward_balance_size > 0:
-                    mt5.order_send({"action": mt5.TRADE_ACTION_DEAL, "symbol": FH.contract,
-                                    "type": mt5.ORDER_TYPE_BUY, "position": self.backward_balance_ticket,
-                                    "volume": self.backward_balance_size, "price": FH.ask_1,
-                                    "deviation": 0, "magic": 1000})
+                    if (FH._T > FH.by_rt and FH.goods_rt > FH.catch_rt) or FH.t_b < FH.t_f:
+                        mt5.order_send({"action": mt5.TRADE_ACTION_DEAL, "symbol": FH.contract,
+                                        "type": mt5.ORDER_TYPE_BUY, "position": self.backward_balance_ticket,
+                                        "volume": self.backward_balance_size, "price": FH.ask_1,
+                                        "deviation": 0, "magic": 1000})
+                    elif FH.forward_position_size > 0.001 and FH.backward_position_size > 0.001:
+                        mt5.order_send({"action": mt5.TRADE_ACTION_CLOSE_BY,
+                                        "position": self.backward_balance_ticket,
+                                        "position_by": int(FH.forward_positions.iloc[0]['ticket']),
+                                        "magic": 1001})

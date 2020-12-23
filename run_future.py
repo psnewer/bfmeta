@@ -4,7 +4,7 @@ import json
 import sys
 from future_manager import *
 
-f = open('./log/LOG_XAUUSD.txt', 'a')
+f = open('./log/LOG_EURUSD.txt', 'a')
 sys.stdout = f
 sys.stderr = f
 
