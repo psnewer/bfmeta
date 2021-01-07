@@ -37,13 +37,15 @@ class Handler_W(FH):
         self.forward_gap_balance = False
         self.backward_gap_balance = False
         if self.forward_reap:
-            self.forward_gap_balance = True
-            self.forward_balance_ticket = int(FH.forward_positions.iloc[0]['ticket'])
-            self.forward_balance_size =  FH.forward_positions.iloc[0]['volume']
+            if FH.ask_1 - FH.bid_1 < FH.limit_spread:
+                self.forward_gap_balance = True
+                self.forward_balance_ticket = int(FH.forward_positions.iloc[0]['ticket'])
+                self.forward_balance_size =  FH.forward_positions.iloc[0]['volume']
         if self.backward_reap:
-            self.backward_gap_balance = True
-            self.backward_balance_ticket = int(FH.backward_positions.iloc[0]['ticket'])
-            self.backward_balance_size =  FH.backward_positions.iloc[0]['volume']
+            if FH.ask_1 - FH.bid_1 < FH.limit_spread:
+                self.backward_gap_balance = True
+                self.backward_balance_ticket = int(FH.backward_positions.iloc[0]['ticket'])
+                self.backward_balance_size =  FH.backward_positions.iloc[0]['volume']
 
         self.forward_catch = False
         self.backward_catch = False

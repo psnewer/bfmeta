@@ -39,13 +39,13 @@ class Handler_F(FH):
         else:
             if FH.ask_1 - FH.bid_1 < FH.limit_spread:
                 self.forward_catch = True
-                self.forward_catch_size = float(format(min(FH.tap,self.forward_target_size - FH.forward_position_size),FH.quanto))
+                self.forward_catch_size = float(format(self.forward_target_size - FH.forward_position_size,FH.quanto))
         if FH.backward_position_size >= self.backward_target_size:
             self.backward_target_size = 0
         else:
             if FH.ask_1 - FH.bid_1 < FH.limit_spread:
                 self.backward_catch = True
-                self.backward_catch_size = float(format(min(FH.tap,self.backward_target_size - FH.backward_position_size),FH.quanto))
+                self.backward_catch_size = float(format(self.backward_target_size - FH.backward_position_size,FH.quanto))
 
         self.forward_gap_balance = False
         self.backward_gap_balance = False
