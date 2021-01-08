@@ -10,10 +10,10 @@ import numpy as np
 from conf import *
 
 class FH(object):
-    balance_overflow = 0.57
+    balance_overflow = -5.59
     account_from = 0
     order_from = 0
-    goods = 0.57
+    goods = 26.63
     forward_goods = 0.0
     backward_goods = 0.0
     limit_value = 0.0
@@ -227,7 +227,5 @@ class FH(object):
             else:
                 FH._T = 1.0
 
-        #if FH.forward_position_size < 0.001 and FH.backward_position_size < 0.001:
-        #    FH.balance_overflow = 0.0
         if FH.forward_goods + FH.backward_goods + FH.balance_overflow > 0.0:
             FH.balance_overflow = max(0.0,-(FH.forward_goods + FH.backward_goods))
