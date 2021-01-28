@@ -10,10 +10,10 @@ import numpy as np
 from conf import *
 
 class FH(object):
-    balance_overflow = -5.59
+    balance_overflow = 0.0
     account_from = 0
     order_from = 0
-    goods = 26.63
+    goods = 0.0
     forward_goods = 0.0
     backward_goods = 0.0
     limit_value = 0.0
@@ -26,6 +26,7 @@ class FH(object):
     T_guide = 1.0
     _T = None
     T_std = 1.0
+    T_rt_pre = 0.0
     S_up = 0.0
     S_dn = 0.0
     t_up = 0.0
@@ -41,14 +42,14 @@ class FH(object):
     def __init__(self,contract = '',contract_params = {}):
         FH.contract = contract
         FH.quanto = contract_params['quanto']
-        FH.T_rt =  contract_params['T_rt']
+        FH.T_N = contract_params['T_N']
+        FH.bait = contract_params['bait']
+        FH.tap = contract_params['tap']
         FH.limit_size = contract_params['limit_size']
         FH.limit_spread = contract_params['limit_spread']
-        FH.balance_rt = contract_params['balance_rt']
-        FH.surplus_abandon = contract_params['surplus_abandon']
         FH.surplus_endure = contract_params['surplus_endure']
-        FH.step_soft_std = contract_params['step_soft']
-        FH.step_hard_std = contract_params['step_hard']
+        FH.step_soft = contract_params['step_soft_std']
+        FH.step_hard = contract_params['step_hard_std']
         FH.std_mom_std = contract_params['std_mom']
         FH.std_sprint_std = contract_params['std_sprint']
 
@@ -125,7 +126,7 @@ class FH(object):
             med_5m = np.median(abs5m)
             max_5m = np.max(abs5m)
             FH.std_mom = max(FH.std_mom_std,med_5m)
-            FH.step_soft = max(FH.step_soft_std, max_5m)
+            FH.step_soft = max_5m
 
         if len(candles_1h) > 10:
             abs1h = []
@@ -137,7 +138,7 @@ class FH(object):
             max_1h = np.max(abs1h)
             med_1h = np.median(abs1h)
             FH.std_sprint = max(FH.std_sprint_std,med_1h)
-            FH.step_hard = max(FH.step_hard_std,max_1h)
+            FH.step_hard = max_1h
             #FH.step_soft = max(FH.step_soft_std, max_1h)
 
         if FH.t_f > FH.t_b:
@@ -202,8 +203,9 @@ class FH(object):
             FH.limit_value = FH.backward_positions.iloc[0]['value']*FH.limit_size/FH.backward_positions.iloc[0]['volume']
         else:
             FH.limit_value = 0.0
-        FH.abandon_goods = FH.surplus_abandon/FH.tick_price * FH.limit_value
         FH.endure_goods = FH.surplus_endure/FH.tick_price * FH.limit_value
+        FH.goods_rt = (FH.forward_goods+FH.backward_goods+FH.balance_overflow)/FH.limit_value*400*max(FH.forward_position_size,FH.backward_position_size)/FH.limit_size if FH.limit_value > 0.0 else 0.0
+
 
         if FH.account_from == 0:
             position_deals = mt5.history_deals_get(time.time()-24*3600, time.time()+24*3600, group=FH.contract)
@@ -227,5 +229,17 @@ class FH(object):
             else:
                 FH._T = 1.0
 
-        if FH.forward_goods + FH.backward_goods + FH.balance_overflow > 0.0:
-            FH.balance_overflow = max(0.0,-(FH.forward_goods + FH.backward_goods))
+        account_book = mt5.history_deals_get(FH.account_from, time.time() + 24 * 3600, group=FH.contract)
+        for item in account_book:
+            if item.time_msc * 0.001 > FH.account_from and item.order != FH.order_from and FH.contract in item.symbol:
+                FH.goods += float(item.profit)
+                FH.account_from = item.time_msc * 0.001
+                FH.order_from = item.order
+                FH.balance_overflow += float(item.profit)
+
+        if FH.forward_position_size < 0.001 and FH.backward_position_size < 0.001:
+            FH.balance_overflow = 0.0
+
+        if FH.tick_price < 1.20945:
+            return
+

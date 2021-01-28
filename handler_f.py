@@ -19,14 +19,6 @@ class Handler_F(FH):
 
         self.get_std_flag()
 
-        account_book = mt5.history_deals_get(FH.account_from, time.time() + 24 * 3600, group=FH.contract)
-        for item in account_book:
-            if item.time_msc * 0.001 > FH.account_from and item.order != FH.order_from and FH.contract in item.symbol:
-                FH.goods += float(item.profit)
-                FH.account_from = item.time_msc * 0.001
-                FH.order_from = item.order
-                FH.balance_overflow += float(item.profit)
-
         if FH.forward_position_size == 0 and FH.backward_position_size == 0:
             self.forward_target_size = FH.limit_size
             self.backward_target_size = FH.limit_size
