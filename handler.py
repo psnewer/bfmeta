@@ -19,10 +19,6 @@ class FH(object):
     limit_value = 0.0
     catch = False
     balance = False
-    forward_sprint = False
-    backward_sprint = False
-    forward_band_price = -1.0
-    backward_band_price = -1.0
     T_guide = 1.0
     _T = None
     T_std = 1.0
@@ -35,8 +31,6 @@ class FH(object):
     S_dn_t = 0.0
     t_up_S = 0.0
     t_dn_S = 0.0
-    t_head = -1
-    t_tail = -1
     pre_side = 'biside'
 
     def __init__(self,contract = '',contract_params = {}):
@@ -50,8 +44,6 @@ class FH(object):
         FH.surplus_endure = contract_params['surplus_endure']
         FH.step_soft = contract_params['step_soft_std']
         FH.step_hard = contract_params['step_hard_std']
-        FH.std_mom_std = contract_params['std_mom']
-        FH.std_sprint_std = contract_params['std_sprint']
 
     def get_std_flag(self):
         FH.orders = mt5.orders_get(symbol=FH.contract)
@@ -100,20 +92,17 @@ class FH(object):
         else:
             FH.t_b = 0.0
 
-        if FH.t_tail == -1:
-            FH.t_tail = sys.float_info.min if FH.t_f > FH.t_b else sys.float_info.max
-        if FH.t_head == -1:
-            FH.t_head = sys.float_info.max if FH.t_f > FH.t_b else sys.float_info.min
-
         FH.forward_stable_price = False
         FH.backward_stable_price = False
+        FH.stable_spread = False
         if FH.ask_1 - FH.bid_1 < FH.limit_spread:
+            FH.stable_spread = True
             if len(candles) > 0:
                 o = float(candles[len(candles)-1]['open'])
                 c = float(candles[len(candles)-1]['close'])
-                if (c - o) < 0.0:
+                if (c - o) <= 0.0:
                     FH.forward_stable_price = True
-                if (c - o) > -0.0:
+                if (c - o) >= -0.0:
                     FH.backward_stable_price = True
 
         if len(candles_5m) > 10:
@@ -123,23 +112,18 @@ class FH(object):
                 c = float(candles_5m[len(candles_5m)-i]['close'])
                 abs5m.append(abs(c - o))
             abs5m = np.nan_to_num(abs5m)
-            med_5m = np.median(abs5m)
             max_5m = np.max(abs5m)
-            FH.std_mom = max(FH.std_mom_std,med_5m)
-            FH.step_soft = max_5m
+            FH.step_soft = FH.limit_spread
 
-        if len(candles_1h) > 10:
-            abs1h = []
-            for i in range(1,11):
-                o = float(candles_1h[len(candles_1h)-i]['open'])
-                c = float(candles_1h[len(candles_1h)-i]['close'])
-                abs1h.append(abs(c - o))
-            abs1h = np.nan_to_num(abs1h)
-            max_1h = np.max(abs1h)
-            med_1h = np.median(abs1h)
-            FH.std_sprint = max(FH.std_sprint_std,med_1h)
-            FH.step_hard = max_1h
-            #FH.step_soft = max(FH.step_soft_std, max_1h)
+#        if len(candles_1h) > 10:
+#            abs1h = []
+#            for i in range(1,11):
+#                o = float(candles_1h[len(candles_1h)-i]['open'])
+#                c = float(candles_1h[len(candles_1h)-i]['close'])
+#                abs1h.append(abs(c - o))
+#            abs1h = np.nan_to_num(abs1h)
+#            max_1h = np.max(abs1h)
+#            FH.step_hard = max_1h
 
         if FH.t_f > FH.t_b:
             FH.current_side = 'forward'
@@ -153,41 +137,10 @@ class FH(object):
         if FH.current_side != FH.pre_side:
             FH.pre_side = FH.current_side
             FH.pre_t = 't'
-            FH.t_tail = -1
             FH.catch = False
             FH.balance = False
 
         print('step', FH.step_soft, FH.step_hard)
-        FH.forward_mom = False
-        FH.backward_mom = False
-        FH.co = 0.0
-        if len(candles_5m) > 1:
-            o = float(candles_5m[len(candles_5m)-2]['open'])
-            c = float(candles_5m[len(candles_5m)-2]['close'])
-            FH.co = (c - o)
-            if FH.co >= FH.std_mom:
-                FH.forward_mom = True
-            elif FH.co <= -FH.std_mom:
-                FH.backward_mom = True
-
-        if FH.forward_mom:
-            if FH.forward_band_price < 0.0:
-                FH.forward_band_price = FH.ask_1
-            if FH.backward_band_price > 0 and (FH.backward_band_price - FH.ask_1) >= FH.std_sprint:
-                FH.forward_sprint = False
-                FH.backward_sprint = True
-            FH.backward_band_price = -1.0
-        elif FH.backward_mom:
-            if FH.backward_band_price < 0.0:
-                FH.backward_band_price = FH.bid_1
-            if FH.forward_band_price > 0 and (FH.bid_1 - FH.forward_band_price) >= FH.std_sprint:
-                FH.backward_sprint = False
-                FH.forward_sprint = True
-            FH.forward_band_price = -1.0
-
-        print(FH.forward_mom,FH.co,FH.forward_sprint)
-        print(FH.backward_mom,FH.co,FH.backward_sprint)
-        print(FH.std_mom,FH.std_sprint,FH.forward_band_price,FH.backward_band_price)
 
         if FH.forward_position_size == 0:
             FH.forward_goods = 0.0
@@ -203,8 +156,10 @@ class FH(object):
             FH.limit_value = FH.backward_positions.iloc[0]['value']*FH.limit_size/FH.backward_positions.iloc[0]['volume']
         else:
             FH.limit_value = 0.0
-        FH.endure_goods = FH.surplus_endure/FH.tick_price * FH.limit_value
-        FH.goods_rt = (FH.forward_goods+FH.backward_goods+FH.balance_overflow)/FH.limit_value*400*max(FH.forward_position_size,FH.backward_position_size)/FH.limit_size if FH.limit_value > 0.0 else 0.0
+
+        if not math.isinf(FH.limit_value) and not math.isnan(FH.limit_value):
+            FH.endure_goods = FH.surplus_endure/FH.tick_price * FH.limit_value
+            FH.goods_rt = (FH.forward_goods+FH.backward_goods+FH.balance_overflow)/FH.limit_value*400*max(FH.forward_position_size,FH.backward_position_size)/FH.limit_size if FH.limit_value > 0.0 else 0.0
 
 
         if FH.account_from == 0:
@@ -239,7 +194,4 @@ class FH(object):
 
         if FH.forward_position_size < 0.001 and FH.backward_position_size < 0.001:
             FH.balance_overflow = 0.0
-
-        if FH.tick_price < 1.20945:
-            return
 
