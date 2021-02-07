@@ -50,7 +50,7 @@ class Future_Manager(object):
         #        FH.balance = False
         #        self.current_handler = self.handler_t
         elif  self.current_handler.tip == 'f':
-            if FH.forward_position_size >= FH.limit_size and FH.backward_position_size >= FH.limit_size:
+            if FH.forward_position_size >= FH.tap and FH.backward_position_size >= FH.tap:
                 FH.catch = False
                 FH.balance = False
                 self.current_handler = self.handler_t

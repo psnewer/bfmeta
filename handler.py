@@ -21,7 +21,7 @@ class FH(object):
     balance = False
     T_guide = 1.0
     _T = None
-    T_std = 1.0
+    T_std = 0.65
     T_rt_pre = 0.0
     S_up = 0.0
     S_dn = 0.0
@@ -37,7 +37,6 @@ class FH(object):
         FH.contract = contract
         FH.quanto = contract_params['quanto']
         FH.T_N = contract_params['T_N']
-        FH.bait = contract_params['bait']
         FH.tap = contract_params['tap']
         FH.limit_size = contract_params['limit_size']
         FH.limit_spread = contract_params['limit_spread']
@@ -178,11 +177,13 @@ class FH(object):
                 FH._T = float(FH.backward_position_size) / float(FH.forward_position_size)
             else:
                 FH._T = 1.0
+            FH.D = FH.forward_position_size - FH.backward_position_size
         elif FH.t_f >= FH.t_b:
             if FH.t_b != 0:
                 FH._T = float(FH.forward_position_size) / float(FH.backward_position_size)
             else:
                 FH._T = 1.0
+            FH.D = FH.backward_position_size - FH.forward_position_size
 
         account_book = mt5.history_deals_get(FH.account_from, time.time() + 24 * 3600, group=FH.contract)
         for item in account_book:

@@ -20,8 +20,8 @@ class Handler_F(FH):
         self.get_std_flag()
 
         if FH.forward_position_size == 0 and FH.backward_position_size == 0:
-            self.forward_target_size = FH.limit_size
-            self.backward_target_size = FH.limit_size
+            self.forward_target_size = FH.tap
+            self.backward_target_size = FH.tap
 
         self.forward_catch = False
         self.backward_catch = False
