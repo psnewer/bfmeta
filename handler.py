@@ -10,18 +10,20 @@ import numpy as np
 from conf import *
 
 class FH(object):
-    balance_overflow = 0.0
+    balance_overflow = 35.36
     account_from = 0
     order_from = 0
-    goods = 0.0
+    goods = 35.36
     forward_goods = 0.0
     backward_goods = 0.0
     limit_value = 0.0
     catch = False
     balance = False
+    T_D = True
+    T_limit = 0.0
     T_guide = 1.0
     _T = None
-    T_std = 0.65
+    T_std = 0.525
     T_rt_pre = 0.0
     S_up = 0.0
     S_dn = 0.0
@@ -36,7 +38,9 @@ class FH(object):
     def __init__(self,contract = '',contract_params = {}):
         FH.contract = contract
         FH.quanto = contract_params['quanto']
-        FH.T_N = contract_params['T_N']
+        FH.D_rt = contract_params['D_rt']
+        FH.L_rt = contract_params['L_rt']
+        FH.TL_rt = contract_params['TL_rt']
         FH.tap = contract_params['tap']
         FH.limit_size = contract_params['limit_size']
         FH.limit_spread = contract_params['limit_spread']

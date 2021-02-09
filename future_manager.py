@@ -40,15 +40,16 @@ class Future_Manager(object):
             FH.catch = False
             FH.balance = False
             self.current_handler = self.handler_f
-        #elif FH.forward_goods + FH.backward_goods + FH.balance_overflow > FH.endure_goods and FH.endure_goods > 0:
-        #    FH.catch = False
-        #    FH.balance = False
-        #    self.current_handler = self.handler_w
-        #elif self.current_handler.tip == 'w':
-        #    if FH.forward_goods + FH.backward_goods + FH.balance_overflow < 0.0:
-        #        FH.catch = False
-        #        FH.balance = False
-        #        self.current_handler = self.handler_t
+        elif FH.forward_goods + FH.backward_goods + FH.balance_overflow > FH.endure_goods:
+            if not math.isinf(FH.endure_goods) and not math.isnan(FH.endure_goods):
+                FH.catch = False
+                FH.balance = False
+                self.current_handler = self.handler_w
+        elif self.current_handler.tip == 'w':
+            if FH.forward_goods + FH.backward_goods + FH.balance_overflow < 0.0:
+                FH.catch = False
+                FH.balance = False
+                self.current_handler = self.handler_t
         elif  self.current_handler.tip == 'f':
             if FH.forward_position_size >= FH.tap and FH.backward_position_size >= FH.tap:
                 FH.catch = False

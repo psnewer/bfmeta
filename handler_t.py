@@ -16,10 +16,25 @@ class Handler_T(FH):
 
         self.get_std_flag()
 
-        FH.T_d = 2.0 / FH.T_N / (FH.T_N - 1)
+        FH.T_N = FH.limit_size / 0.01
+        FH.T_d = 2.0 * FH.D_rt / FH.T_N / (FH.T_N - 1)
+        FH.L_d = 2.0 * FH.L_rt / FH.T_N / (FH.T_N - 1)
         FH.T_para = 1.0 / FH.T_N / FH.T_d
-        FH.T_floor = FH.D / (FH.limit_size * (1.0/FH.T_N)) if FH._T < 1.0 else FH.tap / (FH.limit_size * (1.0/FH.T_N))
-        FH.T_rt = FH.T_para / FH.T_floor
+        FH.L_para = FH.T_para * FH.TL_rt
+        FH.T_floor = FH.D / 0.01 if FH._T < 1.0 else FH.tap / 0.01
+        FH.L = (FH.D/0.01) * (FH.D/0.01 - 1) / 2 * FH.L_d
+        FH.LT = (FH.D/0.01) * (FH.D/0.01 - 1) / 2 * FH.T_d
+        FH.T = (FH.forward_goods+FH.backward_goods+FH.balance_overflow)/FH.limit_value*400
+        if FH.T < -FH.L and FH.T_D:
+            FH.T_limit = 1.0 - FH.D / FH.limit_size
+            FH.T_D = False
+        elif FH.T >= -FH.L and not FH.T_D:
+            FH.T_limit = 0.0
+            FH.T_D = True
+        if FH.T_D:
+            FH.T_rt = FH.T_para / FH.T_floor
+        else:
+            FH.T_rt = FH.L_para / FH.T_floor
         if abs(FH.T_rt - FH.T_rt_pre) > 0.0001:
             FH.T_rt_pre = FH.T_rt
             print('qqqq', FH.T_rt)
@@ -28,13 +43,15 @@ class Handler_T(FH):
 
         if FH.limit_value > 0.0:
             FH.T_std = FH.T_guide + (FH.forward_goods + FH.backward_goods + FH.balance_overflow) / FH.limit_value * 400 * FH.T_rt
-        if FH.T_std < 0.0 and len(FH.orders) == 0:
-            FH.T_guide += 0.0 - FH.T_std
-            FH.T_std = 0.0
+        if FH.T_std < FH.T_limit and len(FH.orders) == 0:
+            FH.T_guide += FH.T_limit - FH.T_std
+            FH.T_std = FH.T_limit
         elif FH.T_std > 1.0 and len(FH.orders) == 0:
             FH.T_guide += 1.0 - FH.T_std
             FH.T_std = 1.0
         FH.D_std = FH.limit_size * (1.0 - FH.T_std)
+
+        print(FH.T, -FH.L, FH.T_D, FH.T_limit)
 
         #if FH.forward_position_size == 0 or FH.backward_position_size == 0:
         #    FH.catch = True
@@ -265,51 +282,51 @@ class Handler_T(FH):
                     mt5.order_send(request={"action": mt5.TRADE_ACTION_REMOVE, "order": order_id})
 
         if len(FH.orders) == 0:
-            if FH.goods_rt < -0.8:
-                if FH.stable_spread:
-                    if FH.forward_position_size < FH.backward_position_size:
-                        FH.T_guide += (1.0 - ((FH.backward_position_size - FH.tap) - FH.forward_position_size) / FH.limit_size) - FH.T_std
-                        FH.T_std = 1.0 - ((FH.backward_position_size - FH.tap) - FH.forward_position_size) / FH.limit_size
-                        FH.D_std = (FH.backward_position_size - FH.tap) - FH.forward_position_size
+            #if FH.goods_rt < -0.8:
+            #    if FH.stable_spread:
+            #        if FH.forward_position_size < FH.backward_position_size:
+            #            FH.T_guide += (1.0 - ((FH.backward_position_size - FH.tap) - FH.forward_position_size) / FH.limit_size) - FH.T_std
+            #            FH.T_std = 1.0 - ((FH.backward_position_size - FH.tap) - FH.forward_position_size) / FH.limit_size
+            #            FH.D_std = (FH.backward_position_size - FH.tap) - FH.forward_position_size
+            #            mt5.order_send({"action": mt5.TRADE_ACTION_DEAL, "symbol": FH.contract,
+            #                            "type": mt5.ORDER_TYPE_BUY, "position": int(FH.backward_positions.iloc[len(FH.backward_positions)-1]['ticket']),
+            #                            "volume": FH.tap, "price": FH.ask_1,
+            #                            "deviation": 0, "magic": 1000})
+            #        elif FH.backward_position_size < FH.forward_position_size:
+            #            FH.T_guide += (1.0 - ((FH.forward_position_size - FH.tap) - FH.backward_position_size) / FH.limit_size) - FH.T_std
+            #            FH.T_std = 1.0 - ((FH.forward_position_size - FH.tap) - FH.backward_position_size) / FH.limit_size
+            #            FH.D_std = (FH.forward_position_size - FH.tap) - FH.backward_position_size
+            #            mt5.order_send({"action": mt5.TRADE_ACTION_DEAL, "symbol": FH.contract,
+            #                            "type": mt5.ORDER_TYPE_SELL, "position": int(FH.forward_positions.iloc[len(FH.forward_positions)-1]['ticket']),
+            #                            "volume": FH.tap, "price": FH.bid_1,
+            #                            "deviation": 0, "magic": 1000})
+            #else:
+            if not self.forward_increase_clear:
+                if FH.forward_position_size < FH.forward_limit:
+                    if self.forward_catch and self.forward_catch_size > 0:
                         mt5.order_send({"action": mt5.TRADE_ACTION_DEAL, "symbol": FH.contract,
-                                        "type": mt5.ORDER_TYPE_BUY, "position": int(FH.backward_positions.iloc[len(FH.backward_positions)-1]['ticket']),
-                                        "volume": FH.tap, "price": FH.ask_1,
-                                        "deviation": 0, "magic": 1000})
-                    elif FH.backward_position_size < FH.forward_position_size:
-                        FH.T_guide += (1.0 - ((FH.forward_position_size - FH.tap) - FH.backward_position_size) / FH.limit_size) - FH.T_std
-                        FH.T_std = 1.0 - ((FH.forward_position_size - FH.tap) - FH.backward_position_size) / FH.limit_size
-                        FH.D_std = (FH.forward_position_size - FH.tap) - FH.backward_position_size
+                                        "type": mt5.ORDER_TYPE_BUY, "volume": self.forward_catch_size,
+                                        "price": FH.ask_1, "deviation": 0, "magic": 0})
+            if not self.forward_reduce_clear and self.forward_gap_balance:
+                if FH.forward_position_size > 0:
+                    if self.forward_balance_size > 0:
                         mt5.order_send({"action": mt5.TRADE_ACTION_DEAL, "symbol": FH.contract,
-                                        "type": mt5.ORDER_TYPE_SELL, "position": int(FH.forward_positions.iloc[len(FH.forward_positions)-1]['ticket']),
-                                        "volume": FH.tap, "price": FH.bid_1,
+                                        "type": mt5.ORDER_TYPE_SELL, "position": self.forward_balance_ticket,
+                                        "volume": self.forward_balance_size, "price": FH.bid_1,
                                         "deviation": 0, "magic": 1000})
-            else:
-                if not self.forward_increase_clear:
-                    if FH.forward_position_size < FH.forward_limit:
-                        if self.forward_catch and self.forward_catch_size > 0:
-                            mt5.order_send({"action": mt5.TRADE_ACTION_DEAL, "symbol": FH.contract,
-                                            "type": mt5.ORDER_TYPE_BUY, "volume": self.forward_catch_size,
-                                            "price": FH.ask_1, "deviation": 0, "magic": 0})
-                if not self.forward_reduce_clear and self.forward_gap_balance:
-                    if FH.forward_position_size > 0:
-                        if self.forward_balance_size > 0:
-                            mt5.order_send({"action": mt5.TRADE_ACTION_DEAL, "symbol": FH.contract,
-                                            "type": mt5.ORDER_TYPE_SELL, "position": self.forward_balance_ticket,
-                                            "volume": self.forward_balance_size, "price": FH.bid_1,
-                                            "deviation": 0, "magic": 1000})
 
-                if not self.backward_increase_clear:
-                    if FH.backward_position_size < FH.backward_limit:
-                        if self.backward_catch and self.backward_catch_size > 0:
-                            mt5.order_send({"action": mt5.TRADE_ACTION_DEAL, "symbol": FH.contract,
-                                            "type": mt5.ORDER_TYPE_SELL, "volume": self.backward_catch_size,
-                                            "price": FH.bid_1, "deviation": 0, "magic": 0})
-                if not self.backward_reduce_clear and self.backward_gap_balance:
-                    if FH.backward_position_size > 0:
-                        if self.backward_balance_size > 0:
-                            mt5.order_send({"action": mt5.TRADE_ACTION_DEAL, "symbol": FH.contract,
-                                            "type": mt5.ORDER_TYPE_BUY, "position": self.backward_balance_ticket,
-                                            "volume": self.backward_balance_size, "price": FH.ask_1,
-                                            "deviation": 0, "magic": 1000})
+            if not self.backward_increase_clear:
+                if FH.backward_position_size < FH.backward_limit:
+                    if self.backward_catch and self.backward_catch_size > 0:
+                        mt5.order_send({"action": mt5.TRADE_ACTION_DEAL, "symbol": FH.contract,
+                                        "type": mt5.ORDER_TYPE_SELL, "volume": self.backward_catch_size,
+                                        "price": FH.bid_1, "deviation": 0, "magic": 0})
+            if not self.backward_reduce_clear and self.backward_gap_balance:
+                if FH.backward_position_size > 0:
+                    if self.backward_balance_size > 0:
+                        mt5.order_send({"action": mt5.TRADE_ACTION_DEAL, "symbol": FH.contract,
+                                        "type": mt5.ORDER_TYPE_BUY, "position": self.backward_balance_ticket,
+                                        "volume": self.backward_balance_size, "price": FH.ask_1,
+                                        "deviation": 0, "magic": 1000})
 
 
