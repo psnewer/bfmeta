@@ -18,23 +18,9 @@ class Handler_T(FH):
 
         FH.T_N = FH.limit_size / 0.01
         FH.T_d = 2.0 * FH.D_rt / FH.T_N / (FH.T_N - 1)
-        FH.L_d = 2.0 * FH.L_rt / FH.T_N / (FH.T_N - 1)
         FH.T_para = 1.0 / FH.T_N / FH.T_d
-        FH.L_para = FH.T_para * FH.TL_rt
         FH.T_floor = FH.D / 0.01 if FH._T < 1.0 else FH.tap / 0.01
-        FH.L = (FH.D/0.01) * (FH.D/0.01 - 1) / 2 * FH.L_d
-        FH.LT = (FH.D/0.01) * (FH.D/0.01 - 1) / 2 * FH.T_d
-        FH.T = (FH.forward_goods+FH.backward_goods+FH.balance_overflow)/FH.limit_value*400
-        if FH.T < -FH.L and FH.T_D:
-            FH.T_limit = 1.0 - FH.D / FH.limit_size
-            FH.T_D = False
-        elif FH.T >= -FH.L and not FH.T_D:
-            FH.T_limit = 0.0
-            FH.T_D = True
-        if FH.T_D:
-            FH.T_rt = FH.T_para / FH.T_floor
-        else:
-            FH.T_rt = FH.L_para / FH.T_floor
+        FH.T_rt = FH.T_para / FH.T_floor
         if abs(FH.T_rt - FH.T_rt_pre) > 0.0001:
             FH.T_rt_pre = FH.T_rt
             print('qqqq', FH.T_rt)
@@ -43,15 +29,13 @@ class Handler_T(FH):
 
         if FH.limit_value > 0.0:
             FH.T_std = FH.T_guide + (FH.forward_goods + FH.backward_goods + FH.balance_overflow) / FH.limit_value * 400 * FH.T_rt
-        if FH.T_std < FH.T_limit and len(FH.orders) == 0:
-            FH.T_guide += FH.T_limit - FH.T_std
-            FH.T_std = FH.T_limit
+        if FH.T_std < 0.0 and len(FH.orders) == 0:
+            FH.T_guide += 0.0 - FH.T_std
+            FH.T_std = 0.0
         elif FH.T_std > 1.0 and len(FH.orders) == 0:
             FH.T_guide += 1.0 - FH.T_std
             FH.T_std = 1.0
         FH.D_std = FH.limit_size * (1.0 - FH.T_std)
-
-        print(FH.T, -FH.L, FH.T_D, FH.T_limit)
 
         #if FH.forward_position_size == 0 or FH.backward_position_size == 0:
         #    FH.catch = True
@@ -108,11 +92,11 @@ class Handler_T(FH):
             #    FH.t_dn_S = FH.tick_price - 2 * FH.step_soft
             print ('catch',FH.tick_price,FH.S_up_t,FH.S_up,FH.S_dn,FH.S_dn_t)
         elif not FH.balance and not FH.catch:
-            FH.balance = True
-            FH.t_up = FH.tick_price + FH.step_soft
-            FH.t_dn = FH.tick_price - FH.step_soft
-            FH.t_up_S = FH.tick_price + 2 * FH.step_soft
-            FH.t_dn_S = FH.tick_price - 2 * FH.step_soft
+            FH.catch = True
+            FH.S_up = FH.tick_price + FH.step_soft
+            FH.S_dn = FH.tick_price - FH.step_soft
+            FH.S_up_t = FH.tick_price + 2 * FH.step_soft
+            FH.S_dn_t = FH.tick_price - 2 * FH.step_soft
 
             #if FH.step_soft > 0:
             #    FH.t_up = min(FH.t_up, FH.tick_price + FH.step_soft)
@@ -139,7 +123,7 @@ class Handler_T(FH):
                             FH.T_guide += (1.0 - (FH.backward_position_size - (FH.forward_position_size - FH.tap))/FH.limit_size) - FH.T_std
                             FH.T_std = 1.0 - (FH.backward_position_size - (FH.forward_position_size - FH.tap))/FH.limit_size
                             FH.D_std = FH.backward_position_size - (FH.forward_position_size - FH.tap)
-                        if FH.stable_spread:
+                        if FH.backward_stable_price:
                             #if FH.tick_price <= FH.t_up:
                                 if FH.t_b >= 0.0:
                                     self.backward_gap_balance = True
@@ -151,41 +135,43 @@ class Handler_T(FH):
                             FH.T_guide += (1.0 - (FH.forward_position_size - (FH.backward_position_size - FH.tap)) / FH.limit_size) - FH.T_std
                             FH.T_std = 1.0 - (FH.forward_position_size - (FH.backward_position_size - FH.tap)) / FH.limit_size
                             FH.D_std = FH.forward_position_size - (FH.backward_position_size - FH.tap)
-                        if FH.stable_spread:
+                        if FH.forward_stable_price:
                             #if FH.tick_price >= FH.t_up:
                                 if FH.t_f >= 0.0:
                                     self.forward_gap_balance = True
 
         if self.forward_gap_balance:
-            if FH.t_f > FH.t_b:
-                self.forward_balance_size = int(min(FH.D_std-FH.D, FH.forward_positions.iloc[0]['volume'], FH.forward_position_size-FH.tap)*100+0.001)/100.0
-                self.forward_balance_ticket = int(FH.forward_positions.iloc[0]['ticket'])
-                print('d1', FH.D_std-FH.D, FH.forward_positions.iloc[0]['volume'])
-                #if FH._T > 0.999:
-                #    self.forward_balance_size = min(max(FH.tap,self.forward_balance_size),FH.forward_positions.iloc[0]['volume'])
-            else:
-                if FH.forward_positions.iloc[len(FH.forward_positions)-1]['profit'] < 0:
-                    self.forward_balance_size = int(min(FH.D-FH.D_std, FH.forward_positions.iloc[len(FH.forward_positions)-1]['volume']*min(1.0,max(0.0,FH.balance_overflow)/abs(FH.forward_positions.iloc[len(FH.forward_positions)-1]['profit'])))*100+0.001)/100.0
+            if FH.forward_position_size > 0.0:
+                if FH.t_f > FH.t_b:
+                    self.forward_balance_size = int(min(FH.D_std-FH.D, FH.forward_positions.iloc[len(FH.forward_positions)-1]['volume'])*100+0.001)/100.0
                     self.forward_balance_ticket = int(FH.forward_positions.iloc[len(FH.forward_positions)-1]['ticket'])
-                    print ('d2', FH.D-FH.D_std, FH.forward_positions.iloc[len(FH.forward_positions)-1]['volume']*min(1.0,max(0.0,FH.balance_overflow)/abs(FH.forward_positions.iloc[len(FH.forward_positions)-1]['profit'])))
+                    print('d1', FH.D_std-FH.D, FH.forward_positions.iloc[len(FH.forward_positions)-1]['volume'])
+                    #if FH._T > 0.999:
+                    #    self.forward_balance_size = min(max(FH.tap,self.forward_balance_size),FH.forward_positions.iloc[0]['volume'])
                 else:
-                    self.forward_balance_size = int(min(FH.D-FH.D_std, FH.forward_positions.iloc[len(FH.forward_positions)-1]['volume']) * 100 + 0.001) / 100.0
-                    self.forward_balance_ticket = int(FH.forward_positions.iloc[len(FH.forward_positions)-1]['ticket'])
+                    if FH.forward_positions.iloc[0]['profit'] < 0:
+                        self.forward_balance_size = int(min(FH.D-FH.D_std, FH.forward_positions.iloc[0]['volume']*min(1.0,max(0.0,FH.balance_overflow)/abs(FH.forward_positions.iloc[0]['profit'])))*100+0.001)/100.0
+                        self.forward_balance_ticket = int(FH.forward_positions.iloc[0]['ticket'])
+                        print ('d2', FH.D-FH.D_std, FH.forward_positions.iloc[0]['volume']*min(1.0,max(0.0,FH.balance_overflow)/abs(FH.forward_positions.iloc[0]['profit'])))
+                    else:
+                        self.forward_balance_size = int(min(FH.D-FH.D_std, FH.forward_positions.iloc[0]['volume']) * 100 + 0.001) / 100.0
+                        self.forward_balance_ticket = int(FH.forward_positions.iloc[0]['ticket'])
         if self.backward_gap_balance:
-            if FH.t_b > FH.t_f:
-                self.backward_balance_size = int(min(FH.D_std-FH.D, FH.backward_positions.iloc[0]['volume'], FH.backward_position_size-FH.tap)*100+0.001)/100.0
-                self.backward_balance_ticket = int(FH.backward_positions.iloc[0]['ticket'])
-                print ('d3', FH.D_std-FH.D, FH.backward_positions.iloc[0]['volume'])
-                #if FH._T > 0.999:
-                #    self.backward_balance_size = min(max(FH.tap,self.backward_balance_size),FH.backward_positions.iloc[0]['volume'])
-            else:
-                if FH.backward_positions.iloc[len(FH.backward_positions)-1]['profit'] < 0:
-                    self.backward_balance_size = int(min(FH.D-FH.D_std, FH.backward_positions.iloc[len(FH.backward_positions)-1]['volume']*min(1.0,max(0.0,FH.balance_overflow)/abs(FH.backward_positions.iloc[len(FH.backward_positions)-1]['profit'])))*100+0.001)/100.0
+            if FH.backward_position_size:
+                if FH.t_b > FH.t_f:
+                    self.backward_balance_size = int(min(FH.D_std-FH.D, FH.backward_positions.iloc[len(FH.backward_positions)-1]['volume'])*100+0.001)/100.0
                     self.backward_balance_ticket = int(FH.backward_positions.iloc[len(FH.backward_positions)-1]['ticket'])
-                    print ('d4', FH.D-FH.D_std, FH.backward_positions.iloc[len(FH.backward_positions)-1]['volume']*min(1.0,max(0.0,FH.balance_overflow)/abs(FH.backward_positions.iloc[len(FH.backward_positions)-1]['profit'])))
+                    print ('d3', FH.D_std-FH.D, FH.backward_positions.iloc[len(FH.backward_positions)-1]['volume'])
+                    #if FH._T > 0.999:
+                    #    self.backward_balance_size = min(max(FH.tap,self.backward_balance_size),FH.backward_positions.iloc[0]['volume'])
                 else:
-                    self.backward_balance_size = int(min(FH.D-FH.D_std, FH.backward_positions.iloc[len(FH.backward_positions)-1]['volume']) * 100 + 0.001) / 100.0
-                    self.backward_balance_ticket = int(FH.backward_positions.iloc[len(FH.backward_positions)-1]['ticket'])
+                    if FH.backward_positions.iloc[0]['profit'] < 0:
+                        self.backward_balance_size = int(min(FH.D-FH.D_std, FH.backward_positions.iloc[0]['volume']*min(1.0,max(0.0,FH.balance_overflow)/abs(FH.backward_positions.iloc[0]['profit'])))*100+0.001)/100.0
+                        self.backward_balance_ticket = int(FH.backward_positions.iloc[0]['ticket'])
+                        print ('d4', FH.D-FH.D_std, FH.backward_positions.iloc[0]['volume']*min(1.0,max(0.0,FH.balance_overflow)/abs(FH.backward_positions.iloc[0]['profit'])))
+                    else:
+                        self.backward_balance_size = int(min(FH.D-FH.D_std, FH.backward_positions.iloc[0]['volume']) * 100 + 0.001) / 100.0
+                        self.backward_balance_ticket = int(FH.backward_positions.iloc[0]['ticket'])
 
         self.forward_catch = False
         self.forward_catch_size = 0
@@ -200,7 +186,7 @@ class Handler_T(FH):
                             FH.T_guide += (1.0 - ((FH.backward_position_size + FH.tap) - FH.forward_position_size)/FH.limit_size) - FH.T_std
                             FH.T_std = 1.0 - ((FH.backward_position_size + FH.tap) - FH.forward_position_size)/FH.limit_size
                             FH.D_std = (FH.backward_position_size + FH.tap) - FH.forward_position_size
-                        if FH.stable_spread and FH.tick_price <= FH.S_up:
+                        if FH.backward_stable_price and FH.tick_price <= FH.S_up:
                             self.forward_catch = True
                             self.forward_catch_size = int(min(FH.D_std-FH.D, FH.forward_limit-FH.forward_position_size)*100+0.001)/100.0
                             print ('1111',FH.D_std-FH.D, FH.forward_limit-FH.forward_position_size)
@@ -217,7 +203,7 @@ class Handler_T(FH):
                             FH.T_guide += (1.0 - ((FH.forward_position_size + FH.tap) - FH.backward_position_size) / FH.limit_size) - FH.T_std
                             FH.T_std = 1.0 - ((FH.forward_position_size + FH.tap) - FH.backward_position_size) / FH.limit_size
                             FH.D_std = (FH.forward_position_size + FH.tap) - FH.backward_position_size
-                        if FH.stable_spread and FH.tick_price >= FH.S_up:
+                        if FH.forward_stable_price and FH.tick_price >= FH.S_up:
                             self.backward_catch = True
                             self.backward_catch_size = int(min(FH.D_std-FH.D, FH.backward_limit-FH.backward_position_size)*100+0.001)/100.0
                             print ('2222',FH.D_std-FH.D, FH.backward_limit-FH.backward_position_size)
@@ -228,6 +214,18 @@ class Handler_T(FH):
                             self.forward_catch = True
                             self.forward_catch_size = int(min(FH.D-FH.D_std, FH.forward_limit-FH.forward_position_size)*100+0.001)/100.0
                             print ('cccc',FH.D-FH.D_std, FH.forward_limit-FH.forward_position_size)
+                elif FH.t_f == 0.0 and FH.t_b == 0.0:
+                    if FH.D <= FH.D_std:
+                        if FH._T > 0.999:
+                            FH.T_guide += (1.0 - FH.tap/FH.limit_size) - FH.T_std
+                            FH.T_std = 1.0 - FH.tap/FH.limit_size
+                            FH.D_std = FH.tap
+                        if FH.backward_stable_price and FH.tick_price <= FH.S_dn:
+                            self.forward_catch = True
+                            self.forward_catch_size = int(min(FH.D_std-FH.D, FH.forward_limit-FH.forward_position_size)*100+0.001)/100.0
+                        elif FH.forward_stable_price and FH.tick_price >= FH.S_up:
+                            self.backward_catch = True
+                            self.backward_catch_size = int(min(FH.D_std-FH.D, FH.backward_limit-FH.backward_position_size)*100+0.001)/100.0
 
     def put_position(self):
 
@@ -301,32 +299,32 @@ class Handler_T(FH):
             #                            "volume": FH.tap, "price": FH.bid_1,
             #                            "deviation": 0, "magic": 1000})
             #else:
-            if not self.forward_increase_clear:
-                if FH.forward_position_size < FH.forward_limit:
-                    if self.forward_catch and self.forward_catch_size > 0:
-                        mt5.order_send({"action": mt5.TRADE_ACTION_DEAL, "symbol": FH.contract,
-                                        "type": mt5.ORDER_TYPE_BUY, "volume": self.forward_catch_size,
-                                        "price": FH.ask_1, "deviation": 0, "magic": 0})
-            if not self.forward_reduce_clear and self.forward_gap_balance:
-                if FH.forward_position_size > 0:
-                    if self.forward_balance_size > 0:
-                        mt5.order_send({"action": mt5.TRADE_ACTION_DEAL, "symbol": FH.contract,
-                                        "type": mt5.ORDER_TYPE_SELL, "position": self.forward_balance_ticket,
-                                        "volume": self.forward_balance_size, "price": FH.bid_1,
-                                        "deviation": 0, "magic": 1000})
+                if not self.forward_increase_clear:
+                    if FH.forward_position_size < FH.forward_limit:
+                        if self.forward_catch and self.forward_catch_size > 0:
+                            mt5.order_send({"action": mt5.TRADE_ACTION_DEAL, "symbol": FH.contract,
+                                            "type": mt5.ORDER_TYPE_BUY, "volume": self.forward_catch_size,
+                                            "price": FH.ask_1, "deviation": 0, "magic": 0})
+                if not self.forward_reduce_clear and self.forward_gap_balance:
+                    if FH.forward_position_size > 0:
+                        if self.forward_balance_size > 0:
+                            mt5.order_send({"action": mt5.TRADE_ACTION_DEAL, "symbol": FH.contract,
+                                            "type": mt5.ORDER_TYPE_SELL, "position": self.forward_balance_ticket,
+                                            "volume": self.forward_balance_size, "price": FH.bid_1,
+                                            "deviation": 0, "magic": 1000})
 
-            if not self.backward_increase_clear:
-                if FH.backward_position_size < FH.backward_limit:
-                    if self.backward_catch and self.backward_catch_size > 0:
-                        mt5.order_send({"action": mt5.TRADE_ACTION_DEAL, "symbol": FH.contract,
-                                        "type": mt5.ORDER_TYPE_SELL, "volume": self.backward_catch_size,
-                                        "price": FH.bid_1, "deviation": 0, "magic": 0})
-            if not self.backward_reduce_clear and self.backward_gap_balance:
-                if FH.backward_position_size > 0:
-                    if self.backward_balance_size > 0:
-                        mt5.order_send({"action": mt5.TRADE_ACTION_DEAL, "symbol": FH.contract,
-                                        "type": mt5.ORDER_TYPE_BUY, "position": self.backward_balance_ticket,
-                                        "volume": self.backward_balance_size, "price": FH.ask_1,
-                                        "deviation": 0, "magic": 1000})
+                if not self.backward_increase_clear:
+                    if FH.backward_position_size < FH.backward_limit:
+                        if self.backward_catch and self.backward_catch_size > 0:
+                            mt5.order_send({"action": mt5.TRADE_ACTION_DEAL, "symbol": FH.contract,
+                                            "type": mt5.ORDER_TYPE_SELL, "volume": self.backward_catch_size,
+                                            "price": FH.bid_1, "deviation": 0, "magic": 0})
+                if not self.backward_reduce_clear and self.backward_gap_balance:
+                    if FH.backward_position_size > 0:
+                        if self.backward_balance_size > 0:
+                            mt5.order_send({"action": mt5.TRADE_ACTION_DEAL, "symbol": FH.contract,
+                                            "type": mt5.ORDER_TYPE_BUY, "position": self.backward_balance_ticket,
+                                            "volume": self.backward_balance_size, "price": FH.ask_1,
+                                            "deviation": 0, "magic": 1000})
 
 

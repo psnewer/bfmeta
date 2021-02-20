@@ -10,20 +10,18 @@ import numpy as np
 from conf import *
 
 class FH(object):
-    balance_overflow = 35.36
+    balance_overflow = 3.81
     account_from = 0
     order_from = 0
-    goods = 35.36
+    goods = 3.81
     forward_goods = 0.0
     backward_goods = 0.0
     limit_value = 0.0
     catch = False
     balance = False
-    T_D = True
-    T_limit = 0.0
     T_guide = 1.0
     _T = None
-    T_std = 0.525
+    T_std = 0.24677267238119585
     T_rt_pre = 0.0
     S_up = 0.0
     S_dn = 0.0
@@ -39,8 +37,6 @@ class FH(object):
         FH.contract = contract
         FH.quanto = contract_params['quanto']
         FH.D_rt = contract_params['D_rt']
-        FH.L_rt = contract_params['L_rt']
-        FH.TL_rt = contract_params['TL_rt']
         FH.tap = contract_params['tap']
         FH.limit_size = contract_params['limit_size']
         FH.limit_spread = contract_params['limit_spread']
@@ -103,9 +99,9 @@ class FH(object):
             if len(candles) > 0:
                 o = float(candles[len(candles)-1]['open'])
                 c = float(candles[len(candles)-1]['close'])
-                if (c - o) <= 0.0:
+                if (c - o) < 0.0:
                     FH.forward_stable_price = True
-                if (c - o) >= -0.0:
+                if (c - o) > -0.0:
                     FH.backward_stable_price = True
 
         if len(candles_5m) > 10:

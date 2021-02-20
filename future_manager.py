@@ -36,11 +36,11 @@ class Future_Manager(object):
     def get_handler(self):
         print ('aaaa',time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),self.current_handler.tip)
         print (FH.goods,FH.balance_overflow,FH.forward_goods+FH.backward_goods+FH.balance_overflow,FH.endure_goods,FH.goods_rt)
-        if FH.forward_position_size == 0 and FH.backward_position_size == 0:
-            FH.catch = False
-            FH.balance = False
-            self.current_handler = self.handler_f
-        elif FH.forward_goods + FH.backward_goods + FH.balance_overflow > FH.endure_goods:
+        #if FH.forward_position_size == 0 and FH.backward_position_size == 0:
+        #    FH.catch = False
+        #    FH.balance = False
+        #    self.current_handler = self.handler_f
+        if FH.forward_goods + FH.backward_goods + FH.balance_overflow > FH.endure_goods:
             if not math.isinf(FH.endure_goods) and not math.isnan(FH.endure_goods):
                 FH.catch = False
                 FH.balance = False
