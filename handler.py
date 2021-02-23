@@ -10,19 +10,20 @@ import numpy as np
 from conf import *
 
 class FH(object):
-    balance_overflow = 3.81
+    balance_overflow = 0.0
     account_from = 0
     order_from = 0
-    goods = 3.81
+    goods = 0.0
     forward_goods = 0.0
     backward_goods = 0.0
     limit_value = 0.0
     catch = False
     balance = False
     T_guide = 1.0
+    T_rt = 1.0
+    max_T = 1.0
     _T = None
-    T_std = 0.24677267238119585
-    T_rt_pre = 0.0
+    T_std = 1.0
     S_up = 0.0
     S_dn = 0.0
     t_up = 0.0
@@ -36,7 +37,7 @@ class FH(object):
     def __init__(self,contract = '',contract_params = {}):
         FH.contract = contract
         FH.quanto = contract_params['quanto']
-        FH.D_rt = contract_params['D_rt']
+        FH.T_rt_std = contract_params['T_rt_std']
         FH.tap = contract_params['tap']
         FH.limit_size = contract_params['limit_size']
         FH.limit_spread = contract_params['limit_spread']
@@ -139,8 +140,6 @@ class FH(object):
             FH.catch = False
             FH.balance = False
 
-        print('step', FH.step_soft, FH.step_hard)
-
         if FH.forward_position_size == 0:
             FH.forward_goods = 0.0
         else:
@@ -158,7 +157,7 @@ class FH(object):
 
         if not math.isinf(FH.limit_value) and not math.isnan(FH.limit_value):
             FH.endure_goods = FH.surplus_endure/FH.tick_price * FH.limit_value
-            FH.goods_rt = (FH.forward_goods+FH.backward_goods+FH.balance_overflow)/FH.limit_value*400*max(FH.forward_position_size,FH.backward_position_size)/FH.limit_size if FH.limit_value > 0.0 else 0.0
+            FH.goods_rt = (FH.forward_goods+FH.backward_goods+FH.balance_overflow)/FH.limit_value*400 if FH.limit_value > 0.0 else 0.0
 
 
         if FH.account_from == 0:
