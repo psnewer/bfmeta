@@ -10,19 +10,18 @@ import numpy as np
 from conf import *
 
 class FH(object):
-    balance_overflow = 0.0
+    balance_overflow = 2.93
     account_from = 0
     order_from = 0
-    goods = 0.0
+    goods = 3.44
+    goods_rt = 0.0
     forward_goods = 0.0
     backward_goods = 0.0
     limit_value = 0.0
     catch = False
     balance = False
-    T_guide = 1.0
-    T_rt = 1.0
-    max_T = 1.0
     _T = None
+    T_guide = 1.0
     T_std = 1.0
     S_up = 0.0
     S_dn = 0.0
@@ -37,7 +36,7 @@ class FH(object):
     def __init__(self,contract = '',contract_params = {}):
         FH.contract = contract
         FH.quanto = contract_params['quanto']
-        FH.T_rt_std = contract_params['T_rt_std']
+        FH.fre = contract_params['fre']
         FH.tap = contract_params['tap']
         FH.limit_size = contract_params['limit_size']
         FH.limit_spread = contract_params['limit_spread']
@@ -125,9 +124,9 @@ class FH(object):
 #            max_1h = np.max(abs1h)
 #            FH.step_hard = max_1h
 
-        if FH.t_f > FH.t_b:
+        if FH.backward_position_size > FH.forward_position_size:
             FH.current_side = 'forward'
-        elif FH.t_f < FH.t_b:
+        elif FH.forward_position_size > FH.backward_position_size:
             FH.current_side = 'backward'
             FH.step_soft = -FH.step_soft
             FH.step_hard = -FH.step_hard
@@ -157,8 +156,6 @@ class FH(object):
 
         if not math.isinf(FH.limit_value) and not math.isnan(FH.limit_value):
             FH.endure_goods = FH.surplus_endure/FH.tick_price * FH.limit_value
-            FH.goods_rt = (FH.forward_goods+FH.backward_goods+FH.balance_overflow)/FH.limit_value*400 if FH.limit_value > 0.0 else 0.0
-
 
         if FH.account_from == 0:
             position_deals = mt5.history_deals_get(time.time()-24*3600, time.time()+24*3600, group=FH.contract)
@@ -194,4 +191,6 @@ class FH(object):
 
         if FH.forward_position_size < 0.001 and FH.backward_position_size < 0.001:
             FH.balance_overflow = 0.0
+
+        FH.margin = FH.forward_goods + FH.backward_goods + FH.balance_overflow
 
