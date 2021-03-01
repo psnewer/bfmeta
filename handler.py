@@ -10,10 +10,10 @@ import numpy as np
 from conf import *
 
 class FH(object):
-    balance_overflow = 2.93
+    balance_overflow = 0.0
     account_from = 0
     order_from = 0
-    goods = 3.44
+    goods = 0.0
     goods_rt = 0.0
     forward_goods = 0.0
     backward_goods = 0.0
@@ -21,6 +21,7 @@ class FH(object):
     catch = False
     balance = False
     _T = None
+    T_rt = 1.0
     T_guide = 1.0
     T_std = 1.0
     S_up = 0.0
@@ -36,7 +37,7 @@ class FH(object):
     def __init__(self,contract = '',contract_params = {}):
         FH.contract = contract
         FH.quanto = contract_params['quanto']
-        FH.fre = contract_params['fre']
+        FH.T_rt_std = contract_params['T_rt_std']
         FH.tap = contract_params['tap']
         FH.limit_size = contract_params['limit_size']
         FH.limit_spread = contract_params['limit_spread']
@@ -135,7 +136,6 @@ class FH(object):
 
         if FH.current_side != FH.pre_side:
             FH.pre_side = FH.current_side
-            FH.pre_t = 't'
             FH.catch = False
             FH.balance = False
 
@@ -168,18 +168,21 @@ class FH(object):
                 FH.account_from = time.time()
                 FH.order_from = 0
 
-        if FH.t_f <= FH.t_b:
+        if FH.current_side == "backward":
             if FH.t_f != 0:
                 FH._T = float(FH.backward_position_size) / float(FH.forward_position_size)
             else:
                 FH._T = 1.0
             FH.D = FH.forward_position_size - FH.backward_position_size
-        elif FH.t_f >= FH.t_b:
+        elif FH.current_side == 'forward':
             if FH.t_b != 0:
                 FH._T = float(FH.forward_position_size) / float(FH.backward_position_size)
             else:
                 FH._T = 1.0
             FH.D = FH.backward_position_size - FH.forward_position_size
+        else:
+            FH._T = 1.0
+            FH.D = 0.0
 
         account_book = mt5.history_deals_get(FH.account_from, time.time() + 24 * 3600, group=FH.contract)
         for item in account_book:

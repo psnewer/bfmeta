@@ -51,6 +51,7 @@ class Future_Manager(object):
                 FH.catch = False
                 FH.balance = False
                 FH.T_guide = 1.0
+                FH.T_std = 1.0
                 self.current_handler = self.handler_t
         elif  self.current_handler.tip == 'f':
             if FH.forward_position_size >= FH.tap and FH.backward_position_size >= FH.tap:
