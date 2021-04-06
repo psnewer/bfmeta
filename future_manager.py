@@ -5,6 +5,7 @@ from conf import *
 from handler import *
 from handler_t import *
 from handler_1t import *
+from handler_0t import *
 from handler_w import *
 from handler_f import *
 import sys
@@ -19,51 +20,83 @@ class Future_Manager(object):
         data_algs = json.load(f_exp)
         contracts = data_algs['contract']
         for contr in contracts:
-            self.handler = FH(contr,contracts[contr])
-            self.handler_t = Handler_T()
-            self.handler_1t = Handler_1T()
-            self.handler_w = Handler_W()
-            self.handler_f = Handler_F()
+            self.current_handler = FH(contr,contracts[contr])
             if contracts[contr]['first_handler'] == 't':
-                self.current_handler = self.handler_t
+                self.current_handler = Handler_T()
+            elif contracts[contr]['first_handler'] == '1t':
+                self.current_handler = Handler_1T()
+            elif contracts[contr]['first_handler'] == '0f':
+                self.current_handler = Handler_0T('forward')
+            elif contracts[contr]['first_handler'] == '0b':
+                self.current_handler = Handler_0T('backward')
             elif contracts[contr]['first_handler'] == 'w':
-                self.current_handler = self.handler_w
+                self.current_handler = Handler_W()
             elif contracts[contr]['first_handler'] == 'f':
-                self.current_handler = self.handler_f
-            self.current_handler.get_flag()
+                self.current_handler = Handler_F()
         f_exp.close()
 
     def get_handler(self):
-        print ('aaaa',time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),self.current_handler.tip)
-        print (FH.goods,FH.balance_overflow,FH.margin,FH.endure_goods,FH.goods_rt)
 
-        if FH.margin > FH.endure_goods:
-            if not math.isinf(FH.endure_goods) and not math.isnan(FH.endure_goods):
+        if FH.forward_position_size == 0 and FH.backward_position_size == 0:
+            if self.current_handler.tip != 't':
                 FH.catch = False
                 FH.balance = False
-                self.current_handler = self.handler_w
-        elif self.current_handler.tip == 'w':
-            if FH.margin < 0.0:
+                self.current_handler = Handler_T()
+                self.current_handler.get_flag()
+        elif self.current_handler.tip == 't':
+            if self.current_handler.current_side == 'biside':
+                if (FH.forward_position_size > 0.0 or FH.backward_position_size > 0.0) or (self.current_handler.T_rt != Handler_T.T_rt):
+                    FH.catch = False
+                    FH.balance = False
+                    self.current_handler = Handler_W()
+                    self.current_handler.get_flag()
+            elif ((FH.backward_position_size > 0.0 and FH.forward_position_size > 0.0) and af(self.current_handler.D) >= af(FH.D_01 - Handler_0T.tap) and larger(self.current_handler.D_std,af(FH.D_01 - Handler_0T.tap))) or \
+                        (not (FH.backward_position_size > 0.0 and FH.forward_position_size > 0.0) and af(self.current_handler.D) >= af(FH.D_01) and larger(self.current_handler.D_std,FH.D_01)) :
                 FH.catch = False
                 FH.balance = False
-                self.current_handler = self.handler_t
-            elif FH.forward_position_size == 0 and FH.backward_position_size == 0:
+                if FH.forward_position_size > FH.backward_position_size:
+                    self.current_handler = Handler_0T('backward')
+                elif FH.forward_position_size < FH.backward_position_size:
+                    self.current_handler = Handler_0T('forward')
+                self.current_handler.get_flag()
+                self.current_handler.adjust_guide(-FH.D_01 + Handler_0T.tap)
+                self.current_handler.get_flag()
+        elif self.current_handler.tip == '0t':
+            if FH.margin >= 0.0:
                 FH.catch = False
                 FH.balance = False
-                FH.T_guide = 1.0
-                FH.T_std = 1.0
-                self.current_handler = self.handler_t
+                self.current_handler = Handler_W()
+                self.current_handler.get_flag()
+            if smaller(self.current_handler.D_dn,(-FH.D_01 + Handler_0T.tap)) and (FH.backward_position_size > 0.0 and FH.forward_position_size > 0.0):
+                if af(self.current_handler.D) <= af(-FH.D_01 + Handler_0T.tap):
+                    self.current_handler = Handler_T()
+                    self.current_handler.get_flag()
+                    if FH.goods_rt < 0.0:
+                        self.current_handler.adjust_rt(FH.D_01 - Handler_0T.tap)
+                        self.current_handler.get_flag()
+            elif (self.current_handler.current_side == 'forward' and FH.forward_position_size == 0.0) or \
+                    (self.current_handler.current_side == 'backward' and FH.backward_position_size == 0.0):
+                if af(self.current_handler.D) <= af(-FH.D_01 + Handler_0T.tap):
+                    self.current_handler = Handler_T()
+                    self.current_handler.get_flag()
+                    if FH.goods_rt < 0.0:
+                        self.current_handler.adjust_rt(FH.D_01 - Handler_0T.tap)
+                        self.current_handler.get_flag()
         elif  self.current_handler.tip == 'f':
-            if FH.forward_position_size >= FH.tap and FH.backward_position_size >= FH.tap:
+            if FH.forward_position_size >= Handler_T.tap and FH.backward_position_size >= Handler_T.tap:
                 FH.catch = False
                 FH.balance = False
-                self.current_handler = self.handler_t
+                self.current_handler = Handler_T()
+                self.current_handler.get_flag()
 
     def run(self):
+        self.current_handler.get_flag()
         self.get_handler()
+        print('aaaa', time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), self.current_handler.tip)
+        print(FH.goods, FH.balance_overflow, FH.margin, FH.endure_goods, FH.goods_rt)
         try:
-            self.current_handler.get_flag();
-            self.current_handler.put_position();
+            if FH.stable_spread:
+                self.current_handler.put_position();
             time.sleep(1)
         except Exception as e:
             print("Exception when calling FuturesApi: %s\n" % e)
