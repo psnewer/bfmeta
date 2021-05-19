@@ -38,20 +38,20 @@ class Future_Manager(object):
     def get_handler(self):
 
         if FH.forward_position_size == 0 and FH.backward_position_size == 0:
-            if self.current_handler.tip != 't':
+            if self.current_handler.tip != 't' or self.current_handler.T_rt != Handler_T.T_rt:
                 FH.catch = False
                 FH.balance = False
                 self.current_handler = Handler_T()
                 self.current_handler.get_flag()
         elif self.current_handler.tip == 't':
             if self.current_handler.current_side == 'biside':
-                if (FH.forward_position_size > 0.0 or FH.backward_position_size > 0.0) or (self.current_handler.T_rt != Handler_T.T_rt):
+                if (FH.forward_position_size > 0.0 or FH.backward_position_size > 0.0):
                     FH.catch = False
                     FH.balance = False
                     self.current_handler = Handler_W()
                     self.current_handler.get_flag()
-            elif ((FH.backward_position_size > 0.0 and FH.forward_position_size > 0.0) and af(self.current_handler.D) >= af(FH.D_01 - Handler_0T.tap) and larger(self.current_handler.D_std,af(FH.D_01 - Handler_0T.tap))) or \
-                        (not (FH.backward_position_size > 0.0 and FH.forward_position_size > 0.0) and af(self.current_handler.D) >= af(FH.D_01) and larger(self.current_handler.D_std,FH.D_01)) :
+            elif ((FH.backward_position_size > 0.0 and FH.forward_position_size > 0.0) and af(self.current_handler.D) >= af(FH.D_01 - Handler_0T.tap) and self.current_handler.D_std > af(FH.D_01 - Handler_0T.tap)) or \
+                        (not (FH.backward_position_size > 0.0 and FH.forward_position_size > 0.0) and af(self.current_handler.D) >= af(FH.D_01) and af(self.current_handler.D_std) > FH.D_01) :
                 FH.catch = False
                 FH.balance = False
                 if FH.forward_position_size > FH.backward_position_size:
@@ -67,7 +67,7 @@ class Future_Manager(object):
                 FH.balance = False
                 self.current_handler = Handler_W()
                 self.current_handler.get_flag()
-            if smaller(self.current_handler.D_dn,(-FH.D_01 + Handler_0T.tap)) and (FH.backward_position_size > 0.0 and FH.forward_position_size > 0.0):
+            if self.current_handler.D_dn < af(-FH.D_01 + Handler_0T.tap) and (FH.backward_position_size > 0.0 and FH.forward_position_size > 0.0):
                 if af(self.current_handler.D) <= af(-FH.D_01 + Handler_0T.tap):
                     self.current_handler = Handler_T()
                     self.current_handler.get_flag()

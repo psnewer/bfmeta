@@ -10,10 +10,10 @@ import numpy as np
 from conf import *
 
 class FH(object):
-    balance_overflow = 2.42
+    balance_overflow = 0.0
     account_from = 0
     order_from = 0
-    goods = 2.42
+    goods = 0.0
     goods_rt = 0.0
     forward_goods = 0.0
     backward_goods = 0.0
@@ -47,7 +47,6 @@ class FH(object):
         book = mt5.symbol_info_tick(FH.contract)
         FH.bid_1 = book.bid
         FH.ask_1 = book.ask
-        FH.last = book.last
         FH.tick_price = (FH.ask_1 + FH.bid_1) / 2
         positions = mt5.positions_get(symbol=FH.contract)
         if len(positions) > 0:
@@ -66,7 +65,7 @@ class FH(object):
             FH.forward_position_size = 0
             FH.backward_position_size = 0
 
-        print ('price',FH.ask_1,FH.bid_1,FH.tick_price,FH.last)
+        print ('price',FH.ask_1,FH.bid_1,FH.tick_price)
 
         FH.forward_limit = FH.limit_size
         FH.backward_limit = FH.limit_size
@@ -104,24 +103,24 @@ class FH(object):
 
         if len(candles_5m) > 10:
             abs5m = []
-            for i in range(2,12):
+            for i in range(1,11):
                 o = float(candles_5m[len(candles_5m)-i]['open'])
                 c = float(candles_5m[len(candles_5m)-i]['close'])
                 abs5m.append(abs(c - o))
             abs5m = np.nan_to_num(abs5m)
             max_5m = np.max(abs5m)
             FH.step_hard = max_5m
-            FH.step_soft = max_5m
+        FH.step_soft = FH.limit_spread
 
-#        if len(candles_1h) > 10:
-#            abs1h = []
-#            for i in range(1,11):
-#                o = float(candles_1h[len(candles_1h)-i]['open'])
-#                c = float(candles_1h[len(candles_1h)-i]['close'])
-#                abs1h.append(abs(c - o))
-#            abs1h = np.nan_to_num(abs1h)
-#            max_1h = np.max(abs1h)
-#            FH.step_hard = max_1h
+        #if len(candles_1h) > 10:
+        #    abs1h = []
+        #    for i in range(1,11):
+        #        o = float(candles_1h[len(candles_1h)-i]['open'])
+        #        c = float(candles_1h[len(candles_1h)-i]['close'])
+        #        abs1h.append(abs(c - o))
+        #    abs1h = np.nan_to_num(abs1h)
+        #    max_1h = np.max(abs1h)
+        #    FH.step_hard = max_1h
 
 
 
@@ -182,15 +181,15 @@ class FH(object):
                 FH.S_up = FH.tick_price
                 FH.S_up_t = FH.tick_price + FH.step_hard
                 FH.S_dn = FH.tick_price - FH.step_soft
-                FH.S_dn_t = FH.tick_price - 2*FH.step_soft
+                FH.S_dn_t = FH.tick_price - 2 * FH.step_soft
             elif (FH.tick_price <= FH.t_dn_S and FH.step_soft > 0) or (FH.tick_price >= FH.t_dn_S and FH.step_soft < 0):
                 FH.balance = False
                 FH.catch = True
                 FH.S_dn = FH.tick_price
                 FH.S_dn_t = FH.tick_price - FH.step_soft
                 FH.S_up = FH.tick_price + FH.step_hard
-                FH.S_up_t = FH.tick_price + 2*FH.step_hard
-            print ('balance',FH.tick_price,FH.t_up_S,FH.t_up,FH.t_dn,FH.t_dn_S)
+                FH.S_up_t = FH.tick_price + 2 * FH.step_hard
+            print('balance', FH.tick_price, FH.t_up_S, FH.t_up, FH.t_dn, FH.t_dn_S)
         elif not FH.balance and FH.catch:
             if (FH.tick_price >= FH.S_up_t and FH.step_soft > 0) or (FH.tick_price <= FH.S_up_t and FH.step_soft < 0):
                 FH.catch = False
@@ -198,19 +197,20 @@ class FH(object):
                 FH.t_up = FH.tick_price
                 FH.t_dn = FH.tick_price - FH.step_soft
                 FH.t_up_S = FH.tick_price + FH.step_hard
-                FH.t_dn_S = FH.tick_price - 2*FH.step_soft
+                FH.t_dn_S = FH.tick_price - 2 * FH.step_soft
             elif (FH.tick_price <= FH.S_dn_t and FH.step_soft > 0) or (FH.tick_price >= FH.S_dn_t and FH.step_soft < 0):
                 FH.catch = False
                 FH.balance = True
                 FH.t_dn = FH.tick_price
-                FH.t_up =  FH.tick_price + FH.step_hard
+                FH.t_up = FH.tick_price + FH.step_hard
                 FH.t_dn_S = FH.tick_price - FH.step_soft
-                FH.t_up_S = FH.tick_price + 2*FH.step_hard
-            print ('catch',FH.tick_price,FH.S_up_t,FH.S_up,FH.S_dn,FH.S_dn_t)
+                FH.t_up_S = FH.tick_price + 2 * FH.step_hard
+            print('catch', FH.tick_price, FH.S_up_t, FH.S_up, FH.S_dn, FH.S_dn_t)
         elif not FH.balance and not FH.catch:
             FH.catch = True
-            FH.S_up = FH.tick_price + FH.step_hard
-            FH.S_dn = FH.tick_price - FH.step_hard
-            FH.S_up_t = FH.tick_price + 2 * FH.step_hard
-            FH.S_dn_t = FH.tick_price - 2 * FH.step_hard
+            FH.S_up = FH.tick_price + FH.step_soft
+            FH.S_dn = FH.tick_price - FH.step_soft
+            FH.S_up_t = FH.tick_price + 2 * FH.step_soft
+            FH.S_dn_t = FH.tick_price - 2 * FH.step_soft
+
 

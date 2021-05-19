@@ -7,6 +7,7 @@ import math
 import numpy as np
 from conf import *
 from handler import *
+from handler_t import *
 
 
 class Handler_F(FH):
@@ -20,8 +21,8 @@ class Handler_F(FH):
         self.get_std_flag()
 
         if FH.forward_position_size == 0 and FH.backward_position_size == 0:
-            self.forward_target_size = FH.tap
-            self.backward_target_size = FH.tap
+            self.forward_target_size = Handler_T.tap
+            self.backward_target_size = Handler_T.tap
 
         self.forward_catch = False
         self.backward_catch = False
@@ -64,29 +65,27 @@ class Handler_F(FH):
                 elif order_type is mt5.ORDER_TYPE_SELL:
                     self.forward_reduce_clear = True
             if order_type is mt5.ORDER_TYPE_BUY and order_magic == 0:
-                if (not self.forward_catch) or FH.forward_position_size >= FH.forward_limit:
-                    mt5.order_send(request={"action": mt5.TRADE_ACTION_REMOVE, "order": order_id})
-                elif self.forward_catch and self.forward_catch_size > 0:
-                    mt5.order_send(request={"action": mt5.TRADE_ACTION_REMOVE, "order": order_id})
-                elif FH.ask_1 > order_price:
+                if self.forward_catch:
+                    if FH.ask_1 > order_price:
+                        mt5.order_send(request={"action": mt5.TRADE_ACTION_REMOVE, "order": order_id})
+                else:
                     mt5.order_send(request={"action": mt5.TRADE_ACTION_REMOVE, "order": order_id})
             elif order_type is mt5.ORDER_TYPE_SELL and order_magic == 1000:
                 if self.forward_gap_balance:
-                    if order_price > FH.bid_1 or self.forward_balance_size > 0:
+                    if order_price > FH.bid_1:
                         mt5.order_send(request={"action": mt5.TRADE_ACTION_REMOVE, "order": order_id})
                 else:
                     mt5.order_send(request={"action": mt5.TRADE_ACTION_REMOVE, "order": order_id})
 
             if order_type is mt5.ORDER_TYPE_SELL and order_magic == 0:
-                if (not self.backward_catch) or FH.backward_position_size >= FH.backward_limit:
-                    mt5.order_send(request={"action": mt5.TRADE_ACTION_REMOVE, "order": order_id})
-                elif self.backward_catch and self.backward_catch_size > 0:
-                    mt5.order_send(request={"action": mt5.TRADE_ACTION_REMOVE, "order": order_id})
-                elif FH.bid < order_price:
+                if self.backward_catch:
+                    if FH.bid < order_price:
+                        mt5.order_send(request={"action": mt5.TRADE_ACTION_REMOVE, "order": order_id})
+                else:
                     mt5.order_send(request={"action": mt5.TRADE_ACTION_REMOVE, "order": order_id})
             elif order_type is mt5.ORDER_TYPE_SELL and order_magic == 1000:
                 if self.backward_gap_balance:
-                    if order_price < FH.ask_1 or self.backward_balance_size > 0:
+                    if order_price < FH.ask_1:
                         mt5.order_send(request={"action": mt5.TRADE_ACTION_REMOVE, "order": order_id})
                 else:
                     mt5.order_send(request={"action": mt5.TRADE_ACTION_REMOVE, "order": order_id})
