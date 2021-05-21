@@ -34,6 +34,7 @@ class FH(object):
     def __init__(self,contract = '',contract_params = {}):
         FH.contract = contract
         FH.quanto = contract_params['quanto']
+        FH.T_level = contract_params['T_level']
         FH.D_01 = contract_params['D_01']
         FH.limit_size = contract_params['limit_size']
         FH.limit_spread = contract_params['limit_spread']
@@ -161,7 +162,7 @@ class FH(object):
             FH.balance_overflow = 0.0
 
         FH.margin = FH.forward_goods + FH.backward_goods + FH.balance_overflow
-        FH.goods_rt = FH.margin / FH.limit_value * 400
+        FH.goods_rt = FH.margin / FH.limit_value * FH.T_level
 
     def get_side(self):
 

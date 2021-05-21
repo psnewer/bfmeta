@@ -10,7 +10,7 @@ from handler import *
 from handler_0t import *
 
 class Handler_T(FH):
-    T_rt = 0.4
+    T_rt = 0.6
     tap = 0.01
 
     def __init__(self):

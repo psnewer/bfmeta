@@ -62,20 +62,7 @@ class Future_Manager(object):
                 self.current_handler.adjust_guide(-FH.D_01 + Handler_0T.tap)
                 self.current_handler.get_flag()
         elif self.current_handler.tip == '0t':
-            if FH.margin >= 0.0:
-                FH.catch = False
-                FH.balance = False
-                self.current_handler = Handler_W()
-                self.current_handler.get_flag()
             if self.current_handler.D_dn < af(-FH.D_01 + Handler_0T.tap) and (FH.backward_position_size > 0.0 and FH.forward_position_size > 0.0):
-                if af(self.current_handler.D) <= af(-FH.D_01 + Handler_0T.tap):
-                    self.current_handler = Handler_T()
-                    self.current_handler.get_flag()
-                    if FH.goods_rt < 0.0:
-                        self.current_handler.adjust_rt(FH.D_01 - Handler_0T.tap)
-                        self.current_handler.get_flag()
-            elif (self.current_handler.current_side == 'forward' and FH.forward_position_size == 0.0) or \
-                    (self.current_handler.current_side == 'backward' and FH.backward_position_size == 0.0):
                 if af(self.current_handler.D) <= af(-FH.D_01 + Handler_0T.tap):
                     self.current_handler = Handler_T()
                     self.current_handler.get_flag()
@@ -94,13 +81,13 @@ class Future_Manager(object):
         self.get_handler()
         print('aaaa', time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), self.current_handler.tip)
         print(FH.goods, FH.balance_overflow, FH.margin, FH.endure_goods, FH.goods_rt)
-        try:
-            if FH.stable_spread:
-                self.current_handler.put_position();
-            time.sleep(1)
-        except Exception as e:
-            print("Exception when calling FuturesApi: %s\n" % e)
-            send_email(e)
+        #try:
+        if FH.stable_spread:
+            self.current_handler.put_position();
+        time.sleep(1)
+        #except Exception as e:
+        #    print("Exception when calling FuturesApi: %s\n" % e)
+        #    send_email(e)
 #            dic_clear = True
 #
 #            try:
