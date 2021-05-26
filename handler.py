@@ -35,10 +35,13 @@ class FH(object):
         FH.contract = contract
         FH.quanto = contract_params['quanto']
         FH.T_level = contract_params['T_level']
+        FH.unit = contract_params['unit']
         FH.D_01 = contract_params['D_01']
+        FH.J0 = contract_params['J0']
+        FH.N0 = contract_params['N0']
         FH.limit_size = contract_params['limit_size']
         FH.limit_spread = contract_params['limit_spread']
-        FH.surplus_endure = contract_params['surplus_endure']
+        FH.ENABLE_BY = contract_params['ENABLE_BY']
 
     def get_std_flag(self):
         FH.orders = mt5.orders_get(symbol=FH.contract)
@@ -68,17 +71,14 @@ class FH(object):
 
         print ('price',FH.ask_1,FH.bid_1,FH.tick_price)
 
-        FH.forward_limit = FH.limit_size
-        FH.backward_limit = FH.limit_size
-
         if FH.forward_position_size == 0:
             FH.forward_entry_price = FH.ask_1
         else:
-            FH.forward_entry_price = FH.forward_value / FH.forward_position_size / 100000
+            FH.forward_entry_price = FH.forward_value / FH.forward_position_size / FH.unit
         if FH.backward_position_size == 0:
             FH.backward_entry_price = FH.bid_1
         else:
-            FH.backward_entry_price = FH.backward_value / FH.backward_position_size / 100000
+            FH.backward_entry_price = FH.backward_value / FH.backward_position_size / FH.unit
 
         if FH.forward_position_size > 0:
             FH.t_f = FH.forward_profit
@@ -104,13 +104,21 @@ class FH(object):
 
         if len(candles_5m) > 10:
             abs5m = []
+            hl = []
             for i in range(1,11):
                 o = float(candles_5m[len(candles_5m)-i]['open'])
                 c = float(candles_5m[len(candles_5m)-i]['close'])
+                h = float(candles_5m[len(candles_5m) - i]['high'])
+                l = float(candles_5m[len(candles_5m) - i]['low'])
                 abs5m.append(abs(c - o))
+                hl.append(abs(h - l))
             abs5m = np.nan_to_num(abs5m)
+            hl = np.nan_to_num(hl)
             max_5m = np.max(abs5m)
+            max_hl = np.max(hl)
             FH.step_hard = max_5m
+            FH.max_5m = max_hl
+
         FH.step_soft = FH.limit_spread
 
         #if len(candles_1h) > 10:
@@ -134,10 +142,7 @@ class FH(object):
         else:
             FH.backward_goods = FH.backward_profit
 
-        FH.limit_value = FH.tick_price * FH.limit_size * 100000
-
-        if not math.isinf(FH.limit_value) and not math.isnan(FH.limit_value):
-            FH.endure_goods = FH.surplus_endure/FH.tick_price * FH.limit_value
+        FH.limit_value = FH.tick_price * FH.limit_size * FH.unit
 
         if FH.account_from == 0:
             position_deals = mt5.history_deals_get(time.time()-24*3600, time.time()+24*3600, group=FH.contract)

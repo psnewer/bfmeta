@@ -27,16 +27,16 @@ class Handler_0T(FH):
         if FH.current_side == 'forward':
             self.margin = FH.forward_goods + FH.balance_overflow
             self.D = FH.forward_position_size - FH.backward_position_size
-            FH.forward_limit = FH.backward_position_size + (FH.D_01 - Handler_0T.tap)
+            FH.forward_limit = FH.limit_size
         elif FH.current_side == 'backward':
             self.margin = FH.backward_goods + FH.balance_overflow
             self.D = FH.backward_position_size - FH.forward_position_size
-            FH.backward_limit = FH.forward_position_size + (FH.D_01 - Handler_0T.tap)
+            FH.backward_limit = FH.limit_size
 
         self.get_side()
 
-        self.T_rt_up = FH.tick_price / (0.002 * FH.T_level)
-        self.T_rt_dn = FH.tick_price / (0.002 * FH.T_level)
+        self.T_rt_up = FH.tick_price / (FH.max_5m * FH.T_level)
+        self.T_rt_dn = FH.tick_price / (FH.max_5m * FH.T_level)
 
         self.goods_rt = self.margin / FH.limit_value * FH.T_level
         self.T_std_up = self.T_guide_up + self.T_rt_up * self.goods_rt
@@ -44,14 +44,14 @@ class Handler_0T(FH):
         self.D_up = FH.limit_size * self.T_std_up
         self.D_dn = FH.limit_size * self.T_std_dn
 
-        if self.D_up >= af(-FH.D_01 + 3 * Handler_0T.tap):
+        if self.D_up >= af(-FH.D_01 + FH.N0 * Handler_0T.tap):
             self.adjust_guide(-FH.D_01 + Handler_0T.tap)
 
         self.bot = -FH.D_01 + self.tap
         if cutoff(self.tap, -FH.D_01 + self.tap, self.D, self.D_up, der='inc', bot=self.bot) >= self.tap:
             self.T_guide_dn += self.T_std_up - self.T_std_dn
             self.T_std_dn = self.T_std_up
-        elif cutoff(self.tap, -FH.D_01 + self.tap, self.D, self.D_dn, der='red', bot=self.bot) >= af(self.D - (FH.D_01 - self.tap)):
+        elif cutoff(self.tap, -FH.D_01 + self.tap, self.D, self.D_dn, der='red', bot=self.bot) >= af(self.D + (FH.D_01 - self.tap)):
             self.T_guide_up += self.T_std_dn - self.T_std_up
             self.T_std_up = self.T_std_dn
 
@@ -60,7 +60,7 @@ class Handler_0T(FH):
             self.put_tap = self.tap
         else:
             self.D_std = self.D_dn
-            self.put_tap = (self.D - (FH.D_01 - self.tap)) if (self.D - (FH.D_01 - self.tap)) > 0.0 else self.tap
+            self.put_tap = af(self.D + (FH.D_01 - self.tap)) if af(self.D + (FH.D_01 - self.tap)) > 0.0 else self.tap
 
         print (FH.current_side,self.T_guide_up,self.T_guide_dn,FH.balance_overflow,self.margin,self.goods_rt)
         print (self.T_std_up,self.T_std_dn,self.D,self.D_up,self.D_dn,FH.forward_stable_price,FH.backward_stable_price)
@@ -232,7 +232,7 @@ class Handler_0T(FH):
             #                        "magic": 1001})
             #else:
             if not self.forward_increase_clear:
-                if FH.forward_position_size < FH.forward_limit:
+                if FH.forward_position_size < FH.limit_size:
                     if self.forward_catch and self.forward_catch_size > 0:
                         mt5.order_send({"action": mt5.TRADE_ACTION_DEAL, "symbol": FH.contract,
                                         "type": mt5.ORDER_TYPE_BUY, "volume": self.forward_catch_size,
@@ -246,7 +246,7 @@ class Handler_0T(FH):
                                         "deviation": 10, "magic": 1000})
 
             if not self.backward_increase_clear:
-                if FH.backward_position_size < FH.backward_limit:
+                if FH.backward_position_size < FH.limit_size:
                     if self.backward_catch and self.backward_catch_size > 0:
                         mt5.order_send({"action": mt5.TRADE_ACTION_DEAL, "symbol": FH.contract,
                                         "type": mt5.ORDER_TYPE_SELL, "volume": self.backward_catch_size,

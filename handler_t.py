@@ -23,6 +23,8 @@ class Handler_T(FH):
 
         self.get_std_flag()
 
+        FH.forward_limit = FH.D_01
+        FH.backward_limit = FH.D_01
         if FH.backward_position_size > FH.forward_position_size:
             FH.current_side = 'forward'
             self.D = FH.backward_position_size - FH.forward_position_size
@@ -38,7 +40,7 @@ class Handler_T(FH):
         self.T_std = self.T_guide - FH.goods_rt / self.T_rt
         self.D_std = FH.limit_size * self.T_std
 
-        if FH.backward_position_size > 0.0 and FH.forward_position_size > 0.0:
+        if self.T_rt != Handler_T.T_rt:
             self.top = FH.D_01 - Handler_0T.tap
         else:
             self.top = FH.D_01
@@ -224,7 +226,7 @@ class Handler_T(FH):
             #                            "deviation": 0, "magic": 1000})
             #else:
                 if not self.forward_increase_clear:
-                    if FH.forward_position_size < FH.forward_limit:
+                    if FH.forward_position_size < FH.limit_size:
                         if self.forward_catch and self.forward_catch_size > 0:
                             mt5.order_send({"action": mt5.TRADE_ACTION_DEAL, "symbol": FH.contract,
                                             "type": mt5.ORDER_TYPE_BUY, "volume": self.forward_catch_size,
@@ -238,7 +240,7 @@ class Handler_T(FH):
                                             "deviation": 10, "magic": 1000})
 
                 if not self.backward_increase_clear:
-                    if FH.backward_position_size < FH.backward_limit:
+                    if FH.backward_position_size < FH.limit_size:
                         if self.backward_catch and self.backward_catch_size > 0:
                             mt5.order_send({"action": mt5.TRADE_ACTION_DEAL, "symbol": FH.contract,
                                             "type": mt5.ORDER_TYPE_SELL, "volume": self.backward_catch_size,

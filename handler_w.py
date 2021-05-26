@@ -93,7 +93,7 @@ class Handler_W(FH):
                     mt5.order_send(request={"action": mt5.TRADE_ACTION_REMOVE, "order": order_id})
 
         if not self.forward_increase_clear:
-            if FH.forward_position_size < FH.forward_limit:
+            if FH.forward_position_size < FH.limit_size:
                 if self.forward_catch and self.forward_catch_size > 0:
                     mt5.order_send({"action": mt5.TRADE_ACTION_DEAL, "symbol": FH.contract,
                                     "type": mt5.ORDER_TYPE_BUY, "volume": self.forward_catch_size,
@@ -107,7 +107,7 @@ class Handler_W(FH):
                                     "deviation": 0, "magic": 1000})
 
         if not self.backward_increase_clear:
-            if FH.backward_position_size < FH.backward_limit:
+            if FH.backward_position_size < FH.limit_size:
                 if self.backward_catch and self.backward_catch_size > 0:
                     mt5.order_send({"action": mt5.TRADE_ACTION_DEAL, "symbol": FH.contract,
                                     "type": mt5.ORDER_TYPE_SELL, "volume": self.backward_catch_size,
