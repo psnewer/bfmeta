@@ -10,13 +10,13 @@ from handler import *
 from handler_0t import *
 
 class Handler_T(FH):
-    T_rt = 0.6
     tap = 0.01
 
     def __init__(self):
         self.tip = 't'
         self.tap = Handler_T.tap
-        self.T_rt = Handler_T.T_rt
+        self.T_rt = FH.tick_price / (FH.m5_hl * FH.T_level)
+        Handler_T.T_rt = self.T_rt
         self.T_guide = 0.0
 
     def get_flag(self):
@@ -37,8 +37,7 @@ class Handler_T(FH):
 
         self.get_side()
 
-        self.T_std = self.T_guide - FH.goods_rt / self.T_rt
-        self.D_std = FH.limit_size * self.T_std
+        self.D_std = self.T_guide - FH.goods_rt * self.T_rt
 
         if self.T_rt != Handler_T.T_rt:
             self.top = FH.D_01 - Handler_0T.tap
@@ -46,7 +45,7 @@ class Handler_T(FH):
             self.top = FH.D_01
 
         print (FH.current_side,self.T_guide,self.T_rt)
-        print(self.T_std, self.D, self.D_std, FH.forward_stable_price, FH.backward_stable_price)
+        print(self.D, self.D_std, FH.forward_stable_price, FH.backward_stable_price)
 
         self.forward_gap_balance = False
         self.forward_balance_size = 0
@@ -206,25 +205,6 @@ class Handler_T(FH):
                     mt5.order_send(request={"action": mt5.TRADE_ACTION_REMOVE, "order": order_id})
 
         if len(FH.orders) == 0:
-            #if FH.goods_rt < -0.8:
-            #    if FH.stable_spread:
-            #        if FH.forward_position_size < FH.backward_position_size:
-            #            self.T_guide += (1.0 - ((FH.backward_position_size - self.tap) - FH.forward_position_size) / FH.limit_size) - self.T_std
-            #            self.T_std = 1.0 - ((FH.backward_position_size - self.tap) - FH.forward_position_size) / FH.limit_size
-            #            self.D_std = (FH.backward_position_size - self.tap) - FH.forward_position_size
-            #            mt5.order_send({"action": mt5.TRADE_ACTION_DEAL, "symbol": FH.contract,
-            #                            "type": mt5.ORDER_TYPE_BUY, "position": int(FH.backward_positions.iloc[len(FH.backward_positions)-1]['ticket']),
-            #                            "volume": self.tap, "price": FH.ask_1,
-            #                            "deviation": 0, "magic": 1000})
-            #        elif FH.backward_position_size < FH.forward_position_size:
-            #            self.T_guide += (1.0 - ((FH.forward_position_size - self.tap) - FH.backward_position_size) / FH.limit_size) - self.T_std
-            #            self.T_std = 1.0 - ((FH.forward_position_size - self.tap) - FH.backward_position_size) / FH.limit_size
-            #            self.D_std = (FH.forward_position_size - self.tap) - FH.backward_position_size
-            #            mt5.order_send({"action": mt5.TRADE_ACTION_DEAL, "symbol": FH.contract,
-            #                            "type": mt5.ORDER_TYPE_SELL, "position": int(FH.forward_positions.iloc[len(FH.forward_positions)-1]['ticket']),
-            #                            "volume": self.tap, "price": FH.bid_1,
-            #                            "deviation": 0, "magic": 1000})
-            #else:
                 if not self.forward_increase_clear:
                     if FH.forward_position_size < FH.limit_size:
                         if self.forward_catch and self.forward_catch_size > 0:
@@ -254,13 +234,11 @@ class Handler_T(FH):
                                             "deviation": 10, "magic": 1000})
 
     def adjust_guide(self,D_std):
-        self.T_guide += D_std / FH.limit_size - (self.T_guide - FH.goods_rt / self.T_rt)
-        self.T_std = D_std / FH.limit_size
+        self.T_guide += D_std - (self.T_guide - FH.goods_rt / self.T_rt)
         self.D_std = D_std
 
     def adjust_rt(self,D_std):
-        self.T_rt = FH.goods_rt / (self.T_guide - D_std / FH.limit_size)
-        self.T_std = D_std / FH.limit_size
+        self.T_rt = (self.T_guide - D_std) / FH.goods_rt
         self.D_std = D_std
 
 

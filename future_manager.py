@@ -22,14 +22,11 @@ class Future_Manager(object):
         contracts = data_algs['contract']
         for contr in contracts:
             self.current_handler = FH(contr,contracts[contr])
+            self.current_handler.get_std_flag()
             if contracts[contr]['first_handler'] == 't':
                 self.current_handler = Handler_T()
-            elif contracts[contr]['first_handler'] == '1t':
-                self.current_handler = Handler_1T()
-            elif contracts[contr]['first_handler'] == '0f':
-                self.current_handler = Handler_0T('forward')
-            elif contracts[contr]['first_handler'] == '0b':
-                self.current_handler = Handler_0T('backward')
+            elif contracts[contr]['first_handler'] == '0t':
+                self.current_handler = Handler_0T()
             elif contracts[contr]['first_handler'] == 'w':
                 self.current_handler = Handler_W()
             elif contracts[contr]['first_handler'] == 'f':
@@ -56,10 +53,7 @@ class Future_Manager(object):
                     (self.current_handler.T_rt == Handler_T.T_rt and af(self.current_handler.D) >= af(FH.D_01) and af(self.current_handler.D_std) > FH.D_01) :
                 FH.catch = False
                 FH.balance = False
-                if FH.forward_position_size > FH.backward_position_size:
-                    self.current_handler = Handler_0T('backward')
-                elif FH.forward_position_size < FH.backward_position_size:
-                    self.current_handler = Handler_0T('forward')
+                self.current_handler = Handler_0T()
                 self.current_handler.get_flag()
                 self.current_handler.adjust_guide(-FH.D_01 + Handler_0T.tap)
                 self.current_handler.get_flag()
