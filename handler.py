@@ -13,40 +13,39 @@ class FH(object):
     balance_overflow = 0.0
     account_from = 0
     order_from = 0
-    goods = 0.0
+    margin = 0.0
     goods_rt = 0.0
-    forward_goods = 0.0
-    backward_goods = 0.0
     unit_value = 0.0
     pre_side = ''
     current_side = ''
-    catch = False
-    balance = False
     S_up = 0.0
     S_dn = 0.0
-    t_up = 0.0
-    t_dn = 0.0
-    S_up_t = 0.0
-    S_dn_t = 0.0
-    t_up_S = 0.0
-    t_dn_S = 0.0
 
     def __init__(self,contract = '',contract_params = {}):
         FH.contract = contract
         FH.quanto = contract_params['quanto']
         FH.T_level = contract_params['T_level']
         FH.unit = contract_params['unit']
-        FH.D_01 = contract_params['D_01']
-        FH.N0 = contract_params['N0']
+        FH.M5 = contract_params['M5']
+        FH.tap = contract_params['tap']
+        FH.forward_top = contract_params['forward_top']
+        FH.backward_top = contract_params['backward_top']
+        FH.forward_std_D = contract_params['forward_std_D']
+        FH.backward_std_D = contract_params['backward_std_D']
+        FH.std_side = contract_params['std_side']
         FH.limit_size = contract_params['limit_size']
         FH.limit_spread = contract_params['limit_spread']
         FH.ENABLE_BY = contract_params['ENABLE_BY']
 
-    def get_std_flag(self):
+    def get_status(self):
         FH.orders = mt5.orders_get(symbol=FH.contract)
-        candles = mt5.copy_rates_from_pos(FH.contract,mt5.TIMEFRAME_M1,0,11)
-        candles_m5 = mt5.copy_rates_from_pos(FH.contract,mt5.TIMEFRAME_M5,0,11)
-        candles_h1 = mt5.copy_rates_from_pos(FH.contract, mt5.TIMEFRAME_H1, 0, 11)
+        FH.candles = mt5.copy_rates_from_pos(FH.contract,mt5.TIMEFRAME_M1,0,11)
+        if FH.M5 == 'M5':
+            FH.candles_m5 = mt5.copy_rates_from_pos(FH.contract, mt5.TIMEFRAME_M5, 0, 11)
+        elif FH.M5 == 'H1':
+            FH.candles_m5 = mt5.copy_rates_from_pos(FH.contract, mt5.TIMEFRAME_H1, 0, 11)
+        elif FH.M5 == 'D1':
+            FH.candles_m5 = mt5.copy_rates_from_pos(FH.contract, mt5.TIMEFRAME_D1, 0, 11)
         book = mt5.symbol_info_tick(FH.contract)
         FH.bid_1 = book.bid
         FH.ask_1 = book.ask
@@ -68,7 +67,9 @@ class FH(object):
             FH.forward_position_size = 0
             FH.backward_position_size = 0
 
-        print ('price',FH.ask_1,FH.bid_1,FH.tick_price)
+        print('price', FH.ask_1, FH.bid_1, FH.tick_price)
+
+    def get_std_flag(self):
 
         if FH.forward_position_size == 0:
             FH.forward_entry_price = FH.ask_1
@@ -93,22 +94,22 @@ class FH(object):
         FH.stable_spread = False
         if FH.ask_1 - FH.bid_1 < FH.limit_spread:
             FH.stable_spread = True
-            if len(candles) > 0:
-                o = float(candles[len(candles)-1]['open'])
-                c = float(candles[len(candles)-1]['close'])
+            if len(FH.candles) > 0:
+                o = float(FH.candles[len(FH.candles)-1]['open'])
+                c = float(FH.candles[len(FH.candles)-1]['close'])
                 if (c - o) < 0.0:
                     FH.forward_stable_price = True
                 if (c - o) > -0.0:
                     FH.backward_stable_price = True
 
-        if len(candles_m5) > 10:
+        if len(FH.candles_m5) > 10:
             oc = []
             hl = []
             for i in range(1,11):
-                o = float(candles_m5[len(candles_m5)-i]['open'])
-                c = float(candles_m5[len(candles_m5)-i]['close'])
-                h = float(candles_m5[len(candles_m5) - i]['high'])
-                l = float(candles_m5[len(candles_m5) - i]['low'])
+                o = float(FH.candles_m5[len(FH.candles_m5)-i]['open'])
+                c = float(FH.candles_m5[len(FH.candles_m5)-i]['close'])
+                h = float(FH.candles_m5[len(FH.candles_m5) - i]['high'])
+                l = float(FH.candles_m5[len(FH.candles_m5) - i]['low'])
                 oc.append(abs(c - o))
                 hl.append(abs(h - l))
             oc = np.nan_to_num(oc)
@@ -118,24 +119,7 @@ class FH(object):
             FH.m5_oc = max_oc
             FH.m5_hl = max_hl
 
-        if len(candles_h1) > 10:
-            oc = []
-            hl = []
-            for i in range(1,11):
-                o = float(candles_h1[len(candles_h1)-i]['open'])
-                c = float(candles_h1[len(candles_h1)-i]['close'])
-                h = float(candles_h1[len(candles_h1) - i]['high'])
-                l = float(candles_h1[len(candles_h1) - i]['low'])
-                oc.append(abs(c - o))
-                hl.append(abs(h - l))
-            oc = np.nan_to_num(oc)
-            hl = np.nan_to_num(hl)
-            max_oc = np.max(oc)
-            max_hl = np.max(hl)
-            FH.h1_oc = max_oc
-            FH.h1_hl = max_hl
-
-        print ('step',FH.m5_oc,FH.m5_hl,FH.h1_oc,FH.h1_hl)
+        print ('step',FH.m5_oc,FH.m5_hl)
 
         FH.step_hard = FH.m5_hl
         FH.step_soft = FH.limit_spread
@@ -165,7 +149,6 @@ class FH(object):
         account_book = mt5.history_deals_get(FH.account_from, time.time() + 24 * 3600, group=FH.contract)
         for item in account_book:
             if item.time_msc * 0.001 > FH.account_from and item.order != FH.order_from and FH.contract in item.symbol:
-                FH.goods += float(item.profit)
                 FH.account_from = item.time_msc * 0.001
                 FH.order_from = item.order
                 FH.balance_overflow += float(item.profit)
@@ -184,46 +167,10 @@ class FH(object):
 
         if FH.current_side != FH.pre_side:
             FH.pre_side = FH.current_side
-            FH.catch = False
-            FH.balance = False
+            self.reset_St()
 
-        if FH.balance and not FH.catch:
-            if (FH.tick_price >= FH.t_up_S and FH.step_soft > 0) or (FH.tick_price <= FH.t_up_S and FH.step_soft < 0):
-                FH.balance = False
-                FH.catch = True
-                FH.S_up = FH.tick_price
-                FH.S_up_t = FH.tick_price + FH.step_hard
-                FH.S_dn = FH.tick_price - FH.step_soft
-                FH.S_dn_t = FH.tick_price - 2 * FH.step_soft
-            elif (FH.tick_price <= FH.t_dn_S and FH.step_soft > 0) or (FH.tick_price >= FH.t_dn_S and FH.step_soft < 0):
-                FH.balance = False
-                FH.catch = True
-                FH.S_dn = FH.tick_price
-                FH.S_dn_t = FH.tick_price - FH.step_soft
-                FH.S_up = FH.tick_price + FH.step_hard
-                FH.S_up_t = FH.tick_price + 2 * FH.step_hard
-            print('balance', FH.tick_price, FH.t_up_S, FH.t_up, FH.t_dn, FH.t_dn_S)
-        elif not FH.balance and FH.catch:
-            if (FH.tick_price >= FH.S_up_t and FH.step_soft > 0) or (FH.tick_price <= FH.S_up_t and FH.step_soft < 0):
-                FH.catch = False
-                FH.balance = True
-                FH.t_up = FH.tick_price
-                FH.t_dn = FH.tick_price - FH.step_soft
-                FH.t_up_S = FH.tick_price + FH.step_hard
-                FH.t_dn_S = FH.tick_price - 2 * FH.step_soft
-            elif (FH.tick_price <= FH.S_dn_t and FH.step_soft > 0) or (FH.tick_price >= FH.S_dn_t and FH.step_soft < 0):
-                FH.catch = False
-                FH.balance = True
-                FH.t_dn = FH.tick_price
-                FH.t_up = FH.tick_price + FH.step_hard
-                FH.t_dn_S = FH.tick_price - FH.step_soft
-                FH.t_up_S = FH.tick_price + 2 * FH.step_hard
-            print('catch', FH.tick_price, FH.S_up_t, FH.S_up, FH.S_dn, FH.S_dn_t)
-        elif not FH.balance and not FH.catch:
-            FH.catch = True
-            FH.S_up = FH.tick_price + FH.step_soft
-            FH.S_dn = FH.tick_price - FH.step_soft
-            FH.S_up_t = FH.tick_price + 2 * FH.step_soft
-            FH.S_dn_t = FH.tick_price - 2 * FH.step_soft
+    def reset_St(self):
+        FH.S_up = FH.tick_price + FH.step_hard
+        FH.S_dn = FH.tick_price - FH.step_hard
 
 

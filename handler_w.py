@@ -16,6 +16,12 @@ class Handler_W(FH):
 
     def get_flag(self):
 
+        self.get_status()
+
+        if FH.forward_position_size == 0 and FH.backward_position_size == 0:
+            if FH.margin < 0.0:
+                return False
+
         self.get_std_flag()
 
         self.forward_reap = False
@@ -41,6 +47,8 @@ class Handler_W(FH):
 
         self.forward_catch = False
         self.backward_catch = False
+
+        return True
 
     def put_position(self):
 
@@ -92,39 +100,68 @@ class Handler_W(FH):
                 else:
                     mt5.order_send(request={"action": mt5.TRADE_ACTION_REMOVE, "order": order_id})
 
-        if not self.forward_increase_clear:
-            if FH.forward_position_size < FH.limit_size:
-                if self.forward_catch and self.forward_catch_size > 0:
-                    mt5.order_send({"action": mt5.TRADE_ACTION_DEAL, "symbol": FH.contract,
-                                    "type": mt5.ORDER_TYPE_BUY, "volume": self.forward_catch_size,
-                                    "price": FH.ask_1, "deviation": 0, "magic": 0})
-        if not self.forward_reduce_clear and self.forward_gap_balance and not self.backward_gap_balance:
-            if FH.forward_position_size > 0:
-                if self.forward_balance_size > 0:
-                    mt5.order_send({"action": mt5.TRADE_ACTION_DEAL, "symbol": FH.contract,
-                                    "type": mt5.ORDER_TYPE_SELL, "position": self.forward_balance_ticket,
-                                    "volume": self.forward_balance_size, "price": FH.bid_1,
-                                    "deviation": 0, "magic": 1000})
+        if FH.ENABLE_BY:
+            if not self.forward_increase_clear:
+                if FH.forward_position_size < FH.limit_size:
+                    if self.forward_catch and self.forward_catch_size > 0:
+                        mt5.order_send({"action": mt5.TRADE_ACTION_DEAL, "symbol": FH.contract,
+                                        "type": mt5.ORDER_TYPE_BUY, "volume": self.forward_catch_size,
+                                        "price": FH.ask_1, "deviation": 0, "magic": 0})
+            if not self.forward_reduce_clear and self.forward_gap_balance and not self.backward_gap_balance:
+                if FH.forward_position_size > 0:
+                    if self.forward_balance_size > 0:
+                        mt5.order_send({"action": mt5.TRADE_ACTION_DEAL, "symbol": FH.contract,
+                                        "type": mt5.ORDER_TYPE_SELL, "position": self.forward_balance_ticket,
+                                        "volume": self.forward_balance_size, "price": FH.bid_1,
+                                        "deviation": 0, "magic": 1000})
 
-        if not self.backward_increase_clear:
-            if FH.backward_position_size < FH.limit_size:
-                if self.backward_catch and self.backward_catch_size > 0:
-                    mt5.order_send({"action": mt5.TRADE_ACTION_DEAL, "symbol": FH.contract,
-                                    "type": mt5.ORDER_TYPE_SELL, "volume": self.backward_catch_size,
-                                    "price": FH.bid_1, "deviation": 0, "magic": 0})
-        if not self.backward_reduce_clear and self.backward_gap_balance and not self.forward_gap_balance:
-            if FH.backward_position_size > 0:
-                if self.backward_balance_size > 0:
-                    mt5.order_send({"action": mt5.TRADE_ACTION_DEAL, "symbol": FH.contract,
-                                    "type": mt5.ORDER_TYPE_BUY, "position": self.backward_balance_ticket,
-                                    "volume": self.backward_balance_size, "price": FH.ask_1,
-                                    "deviation": 0, "magic": 1000})
+            if not self.backward_increase_clear:
+                if FH.backward_position_size < FH.limit_size:
+                    if self.backward_catch and self.backward_catch_size > 0:
+                        mt5.order_send({"action": mt5.TRADE_ACTION_DEAL, "symbol": FH.contract,
+                                        "type": mt5.ORDER_TYPE_SELL, "volume": self.backward_catch_size,
+                                        "price": FH.bid_1, "deviation": 0, "magic": 0})
+            if not self.backward_reduce_clear and self.backward_gap_balance and not self.forward_gap_balance:
+                if FH.backward_position_size > 0:
+                    if self.backward_balance_size > 0:
+                        mt5.order_send({"action": mt5.TRADE_ACTION_DEAL, "symbol": FH.contract,
+                                        "type": mt5.ORDER_TYPE_BUY, "position": self.backward_balance_ticket,
+                                        "volume": self.backward_balance_size, "price": FH.ask_1,
+                                        "deviation": 0, "magic": 1000})
 
-        if not self.forward_reduce_clear and not self.backward_reduce_clear:
-            if self.forward_gap_balance and self.backward_gap_balance:
-                if FH.forward_position_size > 0 and FH.backward_position_size > 0:
-                    if self.forward_balance_size > 0 and self.backward_balance_size > 0:
-                        mt5.order_send({"action": mt5.TRADE_ACTION_CLOSE_BY,
-                                        "position": self.backward_balance_ticket,
-                                        "position_by": self.forward_balance_ticket,
-                                        "magic": 1001})
+            if not self.forward_reduce_clear and not self.backward_reduce_clear:
+                if self.forward_gap_balance and self.backward_gap_balance:
+                    if FH.forward_position_size > 0 and FH.backward_position_size > 0:
+                        if self.forward_balance_size > 0 and self.backward_balance_size > 0:
+                            mt5.order_send({"action": mt5.TRADE_ACTION_CLOSE_BY,
+                                            "position": self.backward_balance_ticket,
+                                            "position_by": self.forward_balance_ticket,
+                                            "magic": 1001})
+        else:
+            if not self.forward_increase_clear:
+                if FH.forward_position_size < FH.limit_size:
+                    if self.forward_catch and self.forward_catch_size > 0:
+                        mt5.order_send({"action": mt5.TRADE_ACTION_DEAL, "symbol": FH.contract,
+                                        "type": mt5.ORDER_TYPE_BUY, "volume": self.forward_catch_size,
+                                        "price": FH.ask_1, "deviation": 10, "magic": 0})
+            if not self.forward_reduce_clear and self.forward_gap_balance:
+                if FH.forward_position_size > 0:
+                    if self.forward_balance_size > 0:
+                        mt5.order_send({"action": mt5.TRADE_ACTION_DEAL, "symbol": FH.contract,
+                                        "type": mt5.ORDER_TYPE_SELL, "position": self.forward_balance_ticket,
+                                        "volume": self.forward_balance_size, "price": FH.bid_1,
+                                        "deviation": 10, "magic": 1000})
+
+            if not self.backward_increase_clear:
+                if FH.backward_position_size < FH.limit_size:
+                    if self.backward_catch and self.backward_catch_size > 0:
+                        mt5.order_send({"action": mt5.TRADE_ACTION_DEAL, "symbol": FH.contract,
+                                        "type": mt5.ORDER_TYPE_SELL, "volume": self.backward_catch_size,
+                                        "price": FH.bid_1, "deviation": 10, "magic": 0})
+            if not self.backward_reduce_clear and self.backward_gap_balance:
+                if FH.backward_position_size > 0:
+                    if self.backward_balance_size > 0:
+                        mt5.order_send({"action": mt5.TRADE_ACTION_DEAL, "symbol": FH.contract,
+                                        "type": mt5.ORDER_TYPE_BUY, "position": self.backward_balance_ticket,
+                                        "volume": self.backward_balance_size, "price": FH.ask_1,
+                                        "deviation": 10, "magic": 1000})
