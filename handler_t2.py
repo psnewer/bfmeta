@@ -19,8 +19,7 @@ class Handler_T2(FH):
         self.T_guide = 0.0
         self.T_rt = 0.0
         self.pre_D = 0.0
-        FH.forward_limit = FH.first_limit
-        FH.backward_limit = FH.first_limit
+        self.limit_volume = 0.0
 
     def get_flag(self):
 
