@@ -18,8 +18,6 @@ class FH(object):
     unit_value = 0.0
     pre_side = ''
     current_side = ''
-    S_up = 0.0
-    S_dn = 0.0
 
     def __init__(self,contract = '',contract_params = {}):
         FH.contract = contract
@@ -28,30 +26,22 @@ class FH(object):
         FH.unit = contract_params['unit']
         FH.M5 = contract_params['M5']
         FH.tap = contract_params['tap']
-        FH.forward_top = contract_params['forward_top']
-        FH.backward_top = contract_params['backward_top']
-        FH.forward_std_D = contract_params['forward_std_D']
-        FH.backward_std_D = contract_params['backward_std_D']
-        FH.std_side = contract_params['std_side']
+        FH.a_limit = contract_params['a_limit']
         FH.limit_size = contract_params['limit_size']
         FH.limit_spread = contract_params['limit_spread']
         FH.ENABLE_BY = contract_params['ENABLE_BY']
+        FH.first_limit = contract_params['first_limit']
 
     def get_status(self):
         FH.orders = mt5.orders_get(symbol=FH.contract)
         FH.candles = mt5.copy_rates_from_pos(FH.contract,mt5.TIMEFRAME_M1,0,11)
-        if FH.M5 == 'M5':
-            FH.candles_m5 = mt5.copy_rates_from_pos(FH.contract, mt5.TIMEFRAME_M5, 0, 11)
-        elif FH.M5 == 'H1':
-            FH.candles_m5 = mt5.copy_rates_from_pos(FH.contract, mt5.TIMEFRAME_H1, 0, 11)
-        elif FH.M5 == 'D1':
-            FH.candles_m5 = mt5.copy_rates_from_pos(FH.contract, mt5.TIMEFRAME_D1, 0, 11)
+        FH.candles_m5 = mt5.copy_rates_from_pos(FH.contract, eval('mt5.TIMEFRAME_' + FH.M5), 0, 11)
         book = mt5.symbol_info_tick(FH.contract)
         FH.bid_1 = book.bid
         FH.ask_1 = book.ask
         FH.tick_price = (FH.ask_1 + FH.bid_1) / 2
         positions = mt5.positions_get(symbol=FH.contract)
-        if len(positions) > 0:
+        if len(positions) > 0 and mt5.last_error()[0]:
             positions = pd.DataFrame(list(positions),columns = positions[0]._asdict().keys())
             FH.forward_positions = positions[positions['type']==mt5.POSITION_TYPE_BUY].sort_values(by='price_open',ascending=True)
             FH.backward_positions = positions[positions['type']==mt5.POSITION_TYPE_SELL].sort_values(by='price_open',ascending=False)
@@ -122,7 +112,6 @@ class FH(object):
         print ('step',FH.m5_oc,FH.m5_hl)
 
         FH.step_hard = FH.m5_hl
-        FH.step_soft = FH.limit_spread
 
         if FH.forward_position_size == 0:
             FH.forward_goods = 0.0
@@ -159,18 +148,18 @@ class FH(object):
         FH.margin = FH.forward_goods + FH.backward_goods + FH.balance_overflow
         FH.goods_rt = FH.margin / FH.unit_value * FH.T_level
 
-    def get_side(self):
+    #def get_side(self):
 
-        if FH.current_side == 'backward':
-            FH.step_soft = -FH.step_soft
-            FH.step_hard = -FH.step_hard
+    #    if FH.current_side == 'backward':
+    #        FH.step_soft = -FH.step_soft
+    #        FH.step_hard = -FH.step_hard
 
-        if FH.current_side != FH.pre_side:
-            FH.pre_side = FH.current_side
-            self.reset_St()
+    #    if FH.current_side != FH.pre_side:
+    #        FH.pre_side = FH.current_side
+    #        self.reset_St()
 
-    def reset_St(self):
-        FH.S_up = FH.tick_price + FH.step_hard
-        FH.S_dn = FH.tick_price - FH.step_hard
+    #def reset_St(self):
+    #    FH.S_up = FH.tick_price + FH.step_hard
+    #    FH.S_dn = FH.tick_price - FH.step_hard
 
 
