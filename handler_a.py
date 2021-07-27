@@ -14,13 +14,7 @@ class Handler_A(FH):
     def __init__(self):
         self.tip = 'a'
         self.tap = 0.01
-        if FH.std_side == 'biside':
-            if FH.backward_position_size > FH.forward_position_size:
-                FH.current_side = 'forward'
-            elif FH.forward_position_size > FH.backward_position_size:
-                FH.current_side = 'backward'
-        else:
-            FH.current_side = FH.std_side
+        self.current_side = ''
 
     def get_flag(self):
 
@@ -51,7 +45,6 @@ class Handler_A(FH):
         self.backward_balance_size = 0
         if True:
             if len(FH.orders) == 0:
-
                 if self.current_side == 'backward':
                         if FH.backward_stable_price and self.D > self.D_std:
                             self.backward_gap_balance = True
