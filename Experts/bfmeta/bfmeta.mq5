@@ -29,8 +29,9 @@ int OnInit()
    current_handler = "t";
    T_level = AccountInfoInteger(ACCOUNT_LEVERAGE);
    unit = SymbolInfoDouble(Symbol(),SYMBOL_TRADE_CONTRACT_SIZE);
+   symbol_order_mode = (int)SymbolInfoInteger(Symbol(),SYMBOL_ORDER_MODE);
    
-   EventSetTimer(60); 
+   EventSetTimer(1); 
 //---
    return(INIT_SUCCEEDED);
   }
@@ -71,9 +72,14 @@ void get_handler()
             else if (handler_t1.D >= handler_t1.limit_volume && handler_t2.D_std <= 0.0){
                 if (handler_t1.forward_catch || handler_t1.backward_catch)
                     if (stable_spread){
+                        if (handler_t1.alert_rt()){
+                            handler_w = Handler_W();
+                            current_handler = "w";
+                        }else{
                         handler_a = Handler_A();
                         handler_a.current_side = handler_t2.current_side;
                         current_handler = "a";
+                        }
                     }
             }
     }
@@ -160,17 +166,14 @@ void OnTimer()
             Print ("qqqq", " ", GetLastError());
      }
      else if (current_handler == "w"){
-         if (handler_w.get_flag()){
+             handler_w.get_flag();
              get_handler();
              if (current_handler == "w"){
                  Print("aaaa ", TimeCurrent(), " ", current_handler);
                  Print(balance_overflow, " ", margin, " ", goods_rt);
                  if (stable_spread)
                      handler_w.put_position();
-                 } 
-             }
-         else
-             Print ("qqqq ", GetLastError());
+             } 
      }
      else if (current_handler == "a"){
          if (handler_a.get_flag()){

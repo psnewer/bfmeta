@@ -30,6 +30,7 @@ public:
     void adjust_guide(double D_std);
     void adjust_rt(double D_std);
     void reset_St();
+    bool alert_rt();
     
     Handler_T1(string side, double limit_volume);
   };
@@ -68,7 +69,7 @@ bool Handler_T1::get_flag()
             this.pre_D = this.D;
             this.reset_St();
         }
-    Print (this.tip, " ", this.current_side, " ", this.T_guide, " ", this.T_rt);
+    Print (this.tip, " ", this.current_side, " ", this.T_guide, " ", this.T_rt," ",tick_price / (d1_hl * T_level));
     Print ("St", " ", this.S_up, " ", this.S_dn);
     Print (this.D, " ", this.D_std, " ", forward_stable_price, " ", backward_stable_price);
 
@@ -113,7 +114,7 @@ bool Handler_T1::get_flag()
     if (true){
         if (this.current_side == "backward"){
             if (forward_stable_price && this.D < this.D_std){
-                if (tick_price >= this.S_up || backward_position_size == 0.0){
+                if (tick_price >= this.S_up){
                     this.backward_catch = true;
                     this.backward_catch_size = af(MathMin(cutoff(this.tap, 0, this.D, this.D_std, "inc"),this.limit_volume - backward_position_size));
                     Print ("b2 ", this.D - this.D_std, " ", this.limit_volume - backward_position_size);
@@ -122,12 +123,21 @@ bool Handler_T1::get_flag()
         }
         else if (this.current_side == "forward"){
             if (backward_stable_price && this.D < this.D_std){
-                if (tick_price <= this.S_dn || forward_position_size == 0.0){
+                if (tick_price <= this.S_dn){
                     this.forward_catch = true;
                     this.forward_catch_size = af(MathMin(cutoff(this.tap, 0, this.D, this.D_std, "inc"),this.limit_volume - forward_position_size));
                     Print ("b4 ", this.D - this.D_std, " ", this.limit_volume - forward_position_size);
                 }
             }
+        }
+    }
+    
+    if (forward_position_size == 0.0 && backward_position_size == 0.0){
+        if (this.current_side == "forward" && tick_price > this.S_up){
+            this.reset_St();
+        }
+        else if (this.current_side == "backward" && tick_price < this.S_dn){
+            this.reset_St();
         }
     }
     
@@ -229,82 +239,83 @@ void Handler_T1::put_position(void)
       }
   }
   if (orders == 0){
-      if (forward_position_size < limit_size){
-          if (this.forward_catch && this.forward_catch_size > 0){
-              MqlTradeRequest request={};
-              MqlTradeResult result={};
-              request.action = TRADE_ACTION_DEAL;
-              request.symbol = _Symbol;
-              request.type = ORDER_TYPE_BUY;
-              request.volume = this.forward_catch_size;
-              request.price = ask_1;
-              request.deviation = 0;
-              request.magic = 0;
-              OrderSend(request,result);
+      if (this.forward_gap_balance && this.backward_gap_balance && (SYMBOL_ORDER_CLOSEBY&symbol_order_mode)==SYMBOL_ORDER_CLOSEBY){
+          if (forward_position_size > 0 && backward_position_size > 0){
+              if (this.forward_balance_size > 0 && this.backward_balance_size > 0){
+                  MqlTradeRequest request={};
+                  MqlTradeResult result={};
+                  request.action = TRADE_ACTION_CLOSE_BY;
+                  request.position = this.backward_balance_ticket;
+                  request.position_by = this.forward_balance_ticket;
+                  request.magic = 1001;
+                  OrderSend(request,result);
+              }
           }
-       }
-       if (this.forward_gap_balance && !this.backward_gap_balance){
-           if (forward_position_size > 0){
-                if (this.forward_balance_size > 0){
-                    MqlTradeRequest request={};
-                    MqlTradeResult result={};
-                    request.action = TRADE_ACTION_DEAL;
-                    request.symbol = _Symbol;
-                    request.type = ORDER_TYPE_SELL;
-                    request.position = this.forward_balance_ticket;
-                    request.volume = this.forward_balance_size;
-                    request.price = bid_1;
-                    request.deviation = 0;
-                    request.magic = 1000;            
-                    OrderSend(request,result);
-                }
-           }
-        }
-        if (backward_position_size < limit_size){
-            if (this.backward_catch && this.backward_catch_size > 0){
-                    MqlTradeRequest request={};
-                    MqlTradeResult result={};
-                    request.action = TRADE_ACTION_DEAL;
-                    request.symbol = _Symbol;
-                    request.type = ORDER_TYPE_SELL;
-                    request.volume = this.backward_catch_size;
-                    request.price = bid_1;
-                    request.deviation = 0;
-                    request.magic = 0;
-                    OrderSend(request,result);
-            }
-        }
-        if (this.backward_gap_balance && !this.forward_gap_balance){
-            if (backward_position_size > 0){
-                if (this.backward_balance_size > 0){
-                    MqlTradeRequest request={};
-                    MqlTradeResult result={};
-                    request.action = TRADE_ACTION_DEAL;
-                    request.symbol = _Symbol;
-                    request.type = ORDER_TYPE_BUY;
-                    request.position = this.backward_balance_ticket;
-                    request.volume = this.backward_balance_size;
-                    request.price = ask_1;
-                    request.deviation = 0;
-                    request.magic = 1000;
-                    OrderSend(request,result);
-                }
-            }
-         }
-
-         if (this.forward_gap_balance && this.backward_gap_balance){
-             if (forward_position_size > 0 && backward_position_size > 0){
-                 if (this.forward_balance_size > 0 && this.backward_balance_size > 0){
-                     MqlTradeRequest request={};
-                     MqlTradeResult result={};
-                     request.action = TRADE_ACTION_CLOSE_BY;
-                     request.position = this.backward_balance_ticket;
-                     request.position_by = this.forward_balance_ticket;
-                     request.magic = 1001;
-                     OrderSend(request,result);
-                 }
+      }
+      else{
+          if (forward_position_size < limit_size){
+             if (this.forward_catch && this.forward_catch_size > 0){
+                  MqlTradeRequest request={};
+                  MqlTradeResult result={};
+                  request.action = TRADE_ACTION_DEAL;
+                  request.symbol = _Symbol;
+                  request.type = ORDER_TYPE_BUY;
+                  request.volume = this.forward_catch_size;
+                  request.price = ask_1;
+                  request.deviation = 0;
+                  request.magic = 0;
+                  OrderSend(request,result);
              }
-         }
+          }
+          if (this.forward_gap_balance){
+              if (forward_position_size > 0){
+                  if (this.forward_balance_size > 0){
+                      MqlTradeRequest request={};
+                      MqlTradeResult result={};
+                      request.action = TRADE_ACTION_DEAL;
+                      request.symbol = _Symbol;
+                      request.type = ORDER_TYPE_SELL;
+                      request.position = this.forward_balance_ticket;
+                      request.volume = this.forward_balance_size;
+                      request.price = bid_1;
+                      request.deviation = 0;
+                      request.magic = 1000;            
+                         OrderSend(request,result);
+                     }
+              }
+          }
+          if (backward_position_size < limit_size){
+              if (this.backward_catch && this.backward_catch_size > 0){
+                  MqlTradeRequest request={};
+                  MqlTradeResult result={};
+                  request.action = TRADE_ACTION_DEAL;
+                  request.symbol = _Symbol;
+                  request.type = ORDER_TYPE_SELL;
+                  request.volume = this.backward_catch_size;
+                  request.price = bid_1;
+                  request.deviation = 0;
+                  request.magic = 0;
+                  OrderSend(request,result);
+              }
+          }
+          if (this.backward_gap_balance){
+              if (backward_position_size > 0){
+                  if (this.backward_balance_size > 0){
+                      MqlTradeRequest request={};
+                      MqlTradeResult result={};
+                      request.action = TRADE_ACTION_DEAL;
+                      request.symbol = _Symbol;
+                      request.type = ORDER_TYPE_BUY;
+                      request.position = this.backward_balance_ticket;
+                      request.volume = this.backward_balance_size;
+                      request.price = ask_1;
+                      request.deviation = 0;
+                      request.magic = 1000;
+                      OrderSend(request,result);
+                  }
+              }
+           }
+      }
    }
 }
 //+------------------------------------------------------------------+
@@ -324,5 +335,13 @@ void Handler_T1::reset_St()
   {
     this.S_up = tick_price + m5_hl;
     this.S_dn = tick_price - m5_hl;
+  }
+//+------------------------------------------------------------------+
+bool Handler_T1::alert_rt()
+  {
+    if (this.T_rt < tick_price / (d1_hl * T_level))
+        return true;
+    else
+        return false;
   }
 //+------------------------------------------------------------------+

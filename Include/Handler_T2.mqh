@@ -236,82 +236,83 @@ void Handler_T2::put_position(void)
       }
   }
   if (orders == 0){
-      if (forward_position_size < limit_size){
-          if (this.forward_catch && this.forward_catch_size > 0){
-              MqlTradeRequest request={};
-              MqlTradeResult result={};
-              request.action = TRADE_ACTION_DEAL;
-              request.symbol = _Symbol;
-              request.type = ORDER_TYPE_BUY;
-              request.volume = this.forward_catch_size;
-              request.price = ask_1;
-              request.deviation = 0;
-              request.magic = 0;
-              OrderSend(request,result);
+      if (this.forward_gap_balance && this.backward_gap_balance && (SYMBOL_ORDER_CLOSEBY&symbol_order_mode)==SYMBOL_ORDER_CLOSEBY){
+          if (forward_position_size > 0 && backward_position_size > 0){
+              if (this.forward_balance_size > 0 && this.backward_balance_size > 0){
+                  MqlTradeRequest request={};
+                  MqlTradeResult result={};
+                  request.action = TRADE_ACTION_CLOSE_BY;
+                  request.position = this.backward_balance_ticket;
+                  request.position_by = this.forward_balance_ticket;
+                  request.magic = 1001;
+                  OrderSend(request,result);
+              }
           }
-       }
-       if (this.forward_gap_balance && !this.backward_gap_balance){
-           if (forward_position_size > 0){
-                if (this.forward_balance_size > 0){
-                    MqlTradeRequest request={};
-                    MqlTradeResult result={};
-                    request.action = TRADE_ACTION_DEAL;
-                    request.symbol = _Symbol;
-                    request.type = ORDER_TYPE_SELL;
-                    request.position = this.forward_balance_ticket;
-                    request.volume = this.forward_balance_size;
-                    request.price = bid_1;
-                    request.deviation = 0;
-                    request.magic = 1000;            
-                    OrderSend(request,result);
-                }
-           }
-        }
-        if (backward_position_size < limit_size){
-            if (this.backward_catch && this.backward_catch_size > 0){
-                    MqlTradeRequest request={};
-                    MqlTradeResult result={};
-                    request.action = TRADE_ACTION_DEAL;
-                    request.symbol = _Symbol;
-                    request.type = ORDER_TYPE_SELL;
-                    request.volume = this.backward_catch_size;
-                    request.price = bid_1;
-                    request.deviation = 0;
-                    request.magic = 0;
-                    OrderSend(request,result);
-            }
-        }
-        if (this.backward_gap_balance && !this.forward_gap_balance){
-            if (backward_position_size > 0){
-                if (this.backward_balance_size > 0){
-                    MqlTradeRequest request={};
-                    MqlTradeResult result={};
-                    request.action = TRADE_ACTION_DEAL;
-                    request.symbol = _Symbol;
-                    request.type = ORDER_TYPE_BUY;
-                    request.position = this.backward_balance_ticket;
-                    request.volume = this.backward_balance_size;
-                    request.price = ask_1;
-                    request.deviation = 0;
-                    request.magic = 1000;
-                    OrderSend(request,result);
-                }
-            }
-         }
-
-         if (this.forward_gap_balance && this.backward_gap_balance){
-             if (forward_position_size > 0 && backward_position_size > 0){
-                 if (this.forward_balance_size > 0 && this.backward_balance_size > 0){
-                     MqlTradeRequest request={};
-                     MqlTradeResult result={};
-                     request.action = TRADE_ACTION_CLOSE_BY;
-                     request.position = this.backward_balance_ticket;
-                     request.position_by = this.forward_balance_ticket;
-                     request.magic = 1001;
-                     OrderSend(request,result);
-                 }
+      }
+      else{
+          if (forward_position_size < limit_size){
+             if (this.forward_catch && this.forward_catch_size > 0){
+                  MqlTradeRequest request={};
+                  MqlTradeResult result={};
+                  request.action = TRADE_ACTION_DEAL;
+                  request.symbol = _Symbol;
+                  request.type = ORDER_TYPE_BUY;
+                  request.volume = this.forward_catch_size;
+                  request.price = ask_1;
+                  request.deviation = 0;
+                  request.magic = 0;
+                  OrderSend(request,result);
              }
-         }
+          }
+          if (this.forward_gap_balance){
+              if (forward_position_size > 0){
+                  if (this.forward_balance_size > 0){
+                      MqlTradeRequest request={};
+                      MqlTradeResult result={};
+                      request.action = TRADE_ACTION_DEAL;
+                      request.symbol = _Symbol;
+                      request.type = ORDER_TYPE_SELL;
+                      request.position = this.forward_balance_ticket;
+                      request.volume = this.forward_balance_size;
+                      request.price = bid_1;
+                      request.deviation = 0;
+                      request.magic = 1000;            
+                         OrderSend(request,result);
+                     }
+              }
+          }
+          if (backward_position_size < limit_size){
+              if (this.backward_catch && this.backward_catch_size > 0){
+                  MqlTradeRequest request={};
+                  MqlTradeResult result={};
+                  request.action = TRADE_ACTION_DEAL;
+                  request.symbol = _Symbol;
+                  request.type = ORDER_TYPE_SELL;
+                  request.volume = this.backward_catch_size;
+                  request.price = bid_1;
+                  request.deviation = 0;
+                  request.magic = 0;
+                  OrderSend(request,result);
+              }
+          }
+          if (this.backward_gap_balance){
+              if (backward_position_size > 0){
+                  if (this.backward_balance_size > 0){
+                      MqlTradeRequest request={};
+                      MqlTradeResult result={};
+                      request.action = TRADE_ACTION_DEAL;
+                      request.symbol = _Symbol;
+                      request.type = ORDER_TYPE_BUY;
+                      request.position = this.backward_balance_ticket;
+                      request.volume = this.backward_balance_size;
+                      request.price = ask_1;
+                      request.deviation = 0;
+                      request.magic = 1000;
+                      OrderSend(request,result);
+                  }
+              }
+           }
+      }
    }
 }
 //+------------------------------------------------------------------+
