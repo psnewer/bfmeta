@@ -31,7 +31,7 @@ int OnInit()
    unit = SymbolInfoDouble(Symbol(),SYMBOL_TRADE_CONTRACT_SIZE);
    symbol_order_mode = (int)SymbolInfoInteger(Symbol(),SYMBOL_ORDER_MODE);
    
-   EventSetTimer(1); 
+   EventSetTimer(60); 
 //---
    return(INIT_SUCCEEDED);
   }
@@ -63,7 +63,7 @@ void get_handler()
         }
     }
     else if (current_handler == "t"){
-            if (forward_position_size == backward_position_size){
+            if (handler_t1.D == handler_t2.D){
                 if (! (forward_position_size == 0 && backward_position_size == 0)){
                     handler_w = Handler_W();
                     current_handler = "w";
@@ -72,14 +72,14 @@ void get_handler()
             else if (handler_t1.D >= handler_t1.limit_volume && handler_t2.D_std <= 0.0){
                 if (handler_t1.forward_catch || handler_t1.backward_catch)
                     if (stable_spread){
-                        if (handler_t1.alert_rt()){
-                            handler_w = Handler_W();
-                            current_handler = "w";
-                        }else{
-                        handler_a = Handler_A();
-                        handler_a.current_side = handler_t2.current_side;
-                        current_handler = "a";
-                        }
+                        //if (handler_t1.alert_rt()){
+                        //    handler_w = Handler_W();
+                        //    current_handler = "w";
+                        //}else{
+                              handler_a = Handler_A();
+                              handler_a.current_side = handler_t2.current_side;
+                              current_handler = "a";
+                        //}
                     }
             }
     }
@@ -96,9 +96,9 @@ void get_handler()
                 else{
                     handler_t1 = Handler_T1("backward", backward_position_size);
                     handler_t2 = Handler_T2("forward", forward_position_size);
-                    handler_t1.adjust_rt(backward_position_size - forward_position_size);
+                    handler_t1.adjust_rt(2.0*(backward_position_size - forward_position_size));
                     handler_t1.adjust_guide(backward_position_size);
-                    handler_t2.adjust_rt(forward_position_size / (backward_position_size - forward_position_size) * _tap);
+                    handler_t2.adjust_rt(2.0*forward_position_size / (backward_position_size - forward_position_size) * _tap);
                     handler_t2.adjust_guide(forward_position_size);
                 }
                 current_handler = "t";

@@ -62,15 +62,16 @@ bool Handler_T2::get_flag()
     if (forward_position_size == 0.0 && backward_position_size == 0.0){
         if (this.pre_D > 0.0){
             this.T_guide = _tap;
-            //this.T_rt = 0.0;
+            this.T_rt = 0.0;
             this.pre_D = 0.0;
             this.limit_volume = first_limit;
         }
     }
 
-    if (this.T_rt == 0.0)
+    if (this.T_rt == 0.0){
         this.T_rt = tick_price / (m5_hl * T_level);
         this.reset_St();
+    }
 
     this.D_std = this.T_guide + goods_rt * this.T_rt;
 
@@ -99,12 +100,12 @@ bool Handler_T2::get_flag()
     if (true){
         if (this.current_side == "backward"){
             if (backward_stable_price && this.D > this.D_std)
-                if (tick_price <= this.S_dn)
+                if (tick_price <= this.S_dn || backward_position_size > forward_position_size)
                     this.backward_gap_balance = true;
         }
         else if (this.current_side == "forward"){
             if (forward_stable_price && this.D > this.D_std)
-                if (tick_price >= this.S_up)
+                if (tick_price >= this.S_up || forward_position_size > backward_position_size)
                     this.forward_gap_balance = true;
         }
      }
@@ -112,7 +113,7 @@ bool Handler_T2::get_flag()
      if (this.forward_gap_balance){
          if (forward_position_size > 0.0){
              if (this.current_side == "forward"){
-                 this.forward_balance_size = af(MathMin(cutoff(this.tap,0,this.D,this.D_std,"red"), forward_first_position));
+                 this.forward_balance_size = af(MathMin(cutoff(this.tap,0,this.D,this.D_std,"red"), forward_first_volume));
                  this.forward_balance_ticket = forward_first_position;
                  Print ("d1 ", this.D_std-this.D, " ", forward_first_volume);
              }

@@ -53,7 +53,7 @@ double cutoff(double tap,double star,double D,double D_std,string der="",double 
                 res = (nn - tap) - D;
     }
     else if (der == "red"){
-        if (MathAbs(D_std - nn) < 0.0001)
+        if (MathAbs(D_std - nn) < DBL_MIN)
             res = af(D - D_std);
         else{
             if (D_std > star)

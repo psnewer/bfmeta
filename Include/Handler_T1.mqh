@@ -23,6 +23,8 @@ public:
     
     double S_up;
     double S_dn;
+    double _S_up;
+    double _S_dn;
     
     bool get_flag();
     void put_position();
@@ -51,7 +53,7 @@ bool Handler_T1::get_flag()
     if (forward_position_size == 0.0 && backward_position_size == 0.0){
         if (this.pre_D > 0.0){
             this.T_guide = _tap;
-            //this.T_rt = 0.0;
+            this.T_rt = 0.0;
             this.pre_D = 0.0;
             this.limit_volume = first_limit;
         }
@@ -91,7 +93,7 @@ bool Handler_T1::get_flag()
      if (this.forward_gap_balance){
          if (forward_position_size > 0.0){
              if (this.current_side == "forward"){
-                 this.forward_balance_size = af(MathMin(cutoff(this.tap,0,this.D,this.D_std,"red"), forward_first_position));
+                 this.forward_balance_size = af(MathMin(cutoff(this.tap,0,this.D,this.D_std,"red"), forward_first_volume));
                  this.forward_balance_ticket = forward_first_position;
                  Print ("d1 ", this.D_std-this.D, " ", forward_first_volume);
              }
@@ -114,7 +116,7 @@ bool Handler_T1::get_flag()
     if (true){
         if (this.current_side == "backward"){
             if (forward_stable_price && this.D < this.D_std){
-                if (tick_price >= this.S_up){
+                if ((tick_price >= this.S_up && backward_position_size > 0.0) || (tick_price >= this._S_up && backward_position_size == 0.0)){
                     this.backward_catch = true;
                     this.backward_catch_size = af(MathMin(cutoff(this.tap, 0, this.D, this.D_std, "inc"),this.limit_volume - backward_position_size));
                     Print ("b2 ", this.D - this.D_std, " ", this.limit_volume - backward_position_size);
@@ -123,7 +125,7 @@ bool Handler_T1::get_flag()
         }
         else if (this.current_side == "forward"){
             if (backward_stable_price && this.D < this.D_std){
-                if (tick_price <= this.S_dn){
+                if ((tick_price <= this.S_dn && forward_position_size > 0.0)|| (tick_price <= this._S_dn && forward_position_size == 0.0)){
                     this.forward_catch = true;
                     this.forward_catch_size = af(MathMin(cutoff(this.tap, 0, this.D, this.D_std, "inc"),this.limit_volume - forward_position_size));
                     Print ("b4 ", this.D - this.D_std, " ", this.limit_volume - forward_position_size);
@@ -131,7 +133,7 @@ bool Handler_T1::get_flag()
             }
         }
     }
-    
+
     if (forward_position_size == 0.0 && backward_position_size == 0.0){
         if (this.current_side == "forward" && tick_price > this.S_up){
             this.reset_St();
@@ -140,7 +142,7 @@ bool Handler_T1::get_flag()
             this.reset_St();
         }
     }
-    
+      
     return true;
   }
 //+------------------------------------------------------------------+
@@ -335,6 +337,8 @@ void Handler_T1::reset_St()
   {
     this.S_up = tick_price + m5_hl;
     this.S_dn = tick_price - m5_hl;
+    this._S_up = tick_price + 1.0*m5_hl;
+    this._S_dn = tick_price - 1.0*m5_hl;
   }
 //+------------------------------------------------------------------+
 bool Handler_T1::alert_rt()
