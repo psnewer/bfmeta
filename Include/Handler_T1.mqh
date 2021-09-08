@@ -17,7 +17,6 @@ public:
     double T_guide;
     double T_rt;
     double pre_D;
-    double limit_volume;
     double D;
     double D_std;
     
@@ -34,7 +33,7 @@ public:
     void reset_St();
     bool alert_rt();
     
-    Handler_T1(string side, double limit_volume);
+    Handler_T1(string side);
   };
 //+------------------------------------------------------------------+
 bool Handler_T1::get_flag()
@@ -50,14 +49,13 @@ bool Handler_T1::get_flag()
     else if (this.current_side == "backward")
         this.D = backward_position_size;
         
-    if (forward_position_size == 0.0 && backward_position_size == 0.0){
-        if (this.pre_D > 0.0){
-            this.T_guide = _tap;
-            this.T_rt = 0.0;
-            this.pre_D = 0.0;
-            this.limit_volume = first_limit;
-        }
-    }
+    //if (forward_position_size == 0.0 && backward_position_size == 0.0){
+    //    if (this.pre_D > 0.0){
+    //        this.T_guide = _tap;
+    //        this.T_rt = 0.0;
+    //        this.pre_D = 0.0;
+    //    }
+    //}
 
     if (this.T_rt == 0.0){
         this.T_rt = tick_price / (m5_hl * T_level);
@@ -82,10 +80,12 @@ bool Handler_T1::get_flag()
     if (true){
         if (this.current_side == "backward"){
             if (backward_stable_price && this.D > this.D_std)
+                //if (tick_price <= this.S_dn)
                 this.backward_gap_balance = true;
         }
         else if (this.current_side == "forward"){
             if (forward_stable_price && this.D > this.D_std)
+                //if (tick_price >= this.S_up)
                 this.forward_gap_balance = true;
         }
      }
@@ -118,8 +118,8 @@ bool Handler_T1::get_flag()
             if (forward_stable_price && this.D < this.D_std){
                 if ((tick_price >= this.S_up && backward_position_size > 0.0) || (tick_price >= this._S_up && backward_position_size == 0.0)){
                     this.backward_catch = true;
-                    this.backward_catch_size = af(MathMin(cutoff(this.tap, 0, this.D, this.D_std, "inc"),this.limit_volume - backward_position_size));
-                    Print ("b2 ", this.D - this.D_std, " ", this.limit_volume - backward_position_size);
+                    this.backward_catch_size = af(MathMin(cutoff(this.tap, 0, this.D, this.D_std, "inc"),limit_size - backward_position_size));
+                    Print ("b2 ", this.D - this.D_std, " ", limit_size - backward_position_size);
                 }
             }
         }
@@ -127,8 +127,8 @@ bool Handler_T1::get_flag()
             if (backward_stable_price && this.D < this.D_std){
                 if ((tick_price <= this.S_dn && forward_position_size > 0.0)|| (tick_price <= this._S_dn && forward_position_size == 0.0)){
                     this.forward_catch = true;
-                    this.forward_catch_size = af(MathMin(cutoff(this.tap, 0, this.D, this.D_std, "inc"),this.limit_volume - forward_position_size));
-                    Print ("b4 ", this.D - this.D_std, " ", this.limit_volume - forward_position_size);
+                    this.forward_catch_size = af(MathMin(cutoff(this.tap, 0, this.D, this.D_std, "inc"),limit_size - forward_position_size));
+                    Print ("b4 ", this.D - this.D_std, " ", limit_size - forward_position_size);
                 }
             }
         }
@@ -146,7 +146,7 @@ bool Handler_T1::get_flag()
     return true;
   }
 //+------------------------------------------------------------------+
-Handler_T1::Handler_T1(string side, double limit_volume)
+Handler_T1::Handler_T1(string side)
   {
     this.tip = "t1";
     this.current_side = side;
@@ -154,7 +154,6 @@ Handler_T1::Handler_T1(string side, double limit_volume)
     this.T_guide = _tap;
     this.T_rt = 0.0;
     this.pre_D = 0.0;
-    this.limit_volume = limit_volume;
   }
 //+------------------------------------------------------------------+
 void Handler_T1::put_position(void)
@@ -330,7 +329,7 @@ void Handler_T1::adjust_guide(double D_std)
 void Handler_T1::adjust_rt(double D_std)
   {
     if (D_std > 0.0)
-        this.T_rt = -D_std / goods_rt * D_std / (D_std + this.T_guide);
+        this.T_rt = -D_std / goods_rt;
   }
 //+------------------------------------------------------------------+
 void Handler_T1::reset_St()

@@ -17,7 +17,6 @@ public:
     double T_guide;
     double T_rt;
     double pre_D;
-    double limit_volume;
     double D;
     double D_std;
     double S_up;
@@ -30,20 +29,19 @@ public:
     void adjust_rt(double D_std);
     void reset_St();
     
-    Handler_T2(string side, double limit_volume);
+    Handler_T2(string side);
   };
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-Handler_T2::Handler_T2(string side, double limit_volume)
+Handler_T2::Handler_T2(string side)
   {
     this.tip = "t2";
     this.current_side = side;
     this.tap = _tap;
-    this.T_guide = 0.0;
+    this.T_guide = -limit_size;
     this.T_rt = 0.0;
     this.pre_D = 0.0;
-    this.limit_volume = limit_volume;
   }
 //+------------------------------------------------------------------+
 bool Handler_T2::get_flag()
@@ -59,28 +57,20 @@ bool Handler_T2::get_flag()
     else if (this.current_side == "backward")
         this.D = backward_position_size;
         
-    if (forward_position_size == 0.0 && backward_position_size == 0.0){
-        if (this.pre_D > 0.0){
-            this.T_guide = _tap;
-            this.T_rt = 0.0;
-            this.pre_D = 0.0;
-            this.limit_volume = first_limit;
-        }
-    }
+    //if (forward_position_size == 0.0 && backward_position_size == 0.0){
+    //    if (this.pre_D > 0.0){
+    //        this.T_guide = _tap;
+    //        this.T_rt = 0.0;
+    //        this.pre_D = 0.0;
+    //    }
+    //}
 
     if (this.T_rt == 0.0){
         this.T_rt = tick_price / (m5_hl * T_level);
         this.reset_St();
     }
 
-    this.D_std = this.T_guide + goods_rt * this.T_rt;
-
-    if (this.D_std > this.limit_volume){
-        if ((this.current_side == "forward" && backward_stable_price) || (this.current_side == "backward" && forward_stable_price)){
-            this.adjust_guide(this.limit_volume);
-            this.reset_St();
-        }    
-    }
+    this.D_std = this.T_guide - goods_rt * this.T_rt;
 
     if (cutoff(this.tap, 0, this.D, this.D_std, "red") == 0.0){
         if (af(this.pre_D) != af(this.D)){
@@ -135,19 +125,32 @@ bool Handler_T2::get_flag()
     this.backward_catch_size = 0;
     if (true){
         if (this.current_side == "backward"){
-            if (forward_stable_price && this.D < this.D_std){
-                this.backward_catch = true;
-                this.backward_catch_size = af(MathMin(cutoff(this.tap, 0, this.D, this.D_std, "inc"),this.limit_volume - backward_position_size));
-                Print ("b2 ", this.D - this.D_std, " ", this.limit_volume - backward_position_size);
-            }
+            if (forward_stable_price && this.D < this.D_std)
+                //if (tick_price >= this.S_up)
+                {
+                    this.backward_catch = true;
+                    this.backward_catch_size = af(MathMin(cutoff(this.tap, 0, this.D, this.D_std, "inc"),limit_size - backward_position_size));
+                    Print ("b2 ", this.D - this.D_std, " ", limit_size - backward_position_size);
+                }
         }
         else if (this.current_side == "forward"){
-            if (backward_stable_price && this.D < this.D_std){
-                this.forward_catch = true;
-                this.forward_catch_size = af(MathMin(cutoff(this.tap, 0, this.D, this.D_std, "inc"),this.limit_volume - forward_position_size));
-                Print ("b4 ", this.D - this.D_std, " ", this.limit_volume - forward_position_size);
-            }
+            if (backward_stable_price && this.D < this.D_std)
+                //if (tick_price <= this.S_dn)
+                {
+                    this.forward_catch = true;
+                    this.forward_catch_size = af(MathMin(cutoff(this.tap, 0, this.D, this.D_std, "inc"),limit_size - forward_position_size));
+                    Print ("b4 ", this.D - this.D_std, " ", limit_size - forward_position_size);
+                }
         }
+    }
+    
+    if (af(forward_position_size) == af(backward_position_size) && forward_position_size > 0.0){
+        if (this.current_side == "forward" && tick_price < this.S_dn){
+            this.reset_St();
+        }
+        else if (this.current_side == "backward" && tick_price > this.S_up){
+            this.reset_St();
+        }     
     }
     
     return true;
@@ -319,14 +322,14 @@ void Handler_T2::put_position(void)
 //+------------------------------------------------------------------+
 void Handler_T2::adjust_guide(double D_std)
   {
-    this.T_guide += D_std - (this.T_guide + goods_rt * this.T_rt);
+    this.T_guide += D_std - (this.T_guide - goods_rt * this.T_rt);
     this.D_std = D_std;
   }
 //+------------------------------------------------------------------+
 void Handler_T2::adjust_rt(double D_std)
   {
     if (D_std > 0.0)
-        this.T_rt = -D_std / goods_rt * D_std / (D_std + this.T_guide);
+        this.T_rt = -D_std / goods_rt;
   }
 //+------------------------------------------------------------------+
 void Handler_T2::reset_St()
