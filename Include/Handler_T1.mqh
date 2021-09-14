@@ -64,11 +64,17 @@ bool Handler_T1::get_flag()
 
     this.D_std = this.T_guide - goods_rt * this.T_rt;
 
-    if (cutoff(this.tap,0,this.D,this.D_std,"inc") == 0.0)
+    if (cutoff(this.tap,0,this.D,this.D_std,"inc") == 0.0){
         if (af(this.pre_D) != af(this.D)){
             this.pre_D = this.D;
             this.reset_St();
         }
+    }  
+    else if (cutoff(this.tap, 0, this.D, this.D_std, "inc") > 0.0){
+        if ((this.current_side == "forward" && tick_price >= this.S_up) || (this.current_side == "backward" && tick_price <= this.S_dn))
+            this.reset_St();
+    }
+    
     Print (this.tip, " ", this.current_side, " ", this.T_guide, " ", this.T_rt," ",tick_price / (d1_hl * T_level));
     Print ("St", " ", this.S_up, " ", this.S_dn);
     Print (this.D, " ", this.D_std, " ", forward_stable_price, " ", backward_stable_price);
@@ -116,7 +122,7 @@ bool Handler_T1::get_flag()
     if (true){
         if (this.current_side == "backward"){
             if (forward_stable_price && this.D < this.D_std){
-                if ((tick_price >= this.S_up && backward_position_size > 0.0) || (tick_price >= this._S_up && backward_position_size == 0.0)){
+                if (tick_price >= this.S_up){
                     this.backward_catch = true;
                     this.backward_catch_size = af(MathMin(cutoff(this.tap, 0, this.D, this.D_std, "inc"),limit_size - backward_position_size));
                     Print ("b2 ", this.D - this.D_std, " ", limit_size - backward_position_size);
@@ -125,7 +131,7 @@ bool Handler_T1::get_flag()
         }
         else if (this.current_side == "forward"){
             if (backward_stable_price && this.D < this.D_std){
-                if ((tick_price <= this.S_dn && forward_position_size > 0.0)|| (tick_price <= this._S_dn && forward_position_size == 0.0)){
+                if (tick_price <= this.S_dn){
                     this.forward_catch = true;
                     this.forward_catch_size = af(MathMin(cutoff(this.tap, 0, this.D, this.D_std, "inc"),limit_size - forward_position_size));
                     Print ("b4 ", this.D - this.D_std, " ", limit_size - forward_position_size);
@@ -133,16 +139,32 @@ bool Handler_T1::get_flag()
             }
         }
     }
-
-    if (forward_position_size == 0.0 && backward_position_size == 0.0){
-        if (this.current_side == "forward" && tick_price > this.S_up){
-            this.reset_St();
-        }
-        else if (this.current_side == "backward" && tick_price < this.S_dn){
-            this.reset_St();
-        }
-    }
       
+    if (current_orient == "biside"){
+        if (af(forward_position_size) > 0.0){
+            if (this.current_side == "forward" && tick_price <= this.S_dn){
+                this.forward_gap_balance = true;
+                this.forward_balance_size = this.tap;
+                this.forward_balance_ticket = forward_first_position;
+            }
+            else if (this.current_side == "backward" && tick_price >= this.S_up){
+                this.backward_gap_balance = true; 
+                this.backward_balance_size = this.tap; 
+                this.backward_balance_ticket = backward_first_position;
+            }  
+        }  
+        else {
+            if (this.current_side == "backward" && tick_price >= this.S_up){
+                 this.backward_catch = true;
+                 this.backward_catch_size = this.tap;
+            }
+            else if (this.current_side == "forward" && tick_price <= this.S_dn){
+                  this.forward_catch = true;
+                  this.forward_catch_size = this.tap;
+            }
+        }         
+    }
+    
     return true;
   }
 //+------------------------------------------------------------------+
@@ -328,7 +350,7 @@ void Handler_T1::adjust_guide(double D_std)
 //+------------------------------------------------------------------+
 void Handler_T1::adjust_rt(double D_std)
   {
-    if (D_std > 0.0)
+    if (goods_rt < 0.0)
         this.T_rt = -D_std / goods_rt;
   }
 //+------------------------------------------------------------------+

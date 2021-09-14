@@ -63,16 +63,10 @@ void get_handler()
             current_handler = "t";
         }
     }
-    else if (current_handler == "t"){
+    else if (current_handler == "t"){           
         if (af(forward_position_size) == af(backward_position_size) && margin > 0.0){
             handler_w = Handler_W();
             current_handler = "w";
-        }
-        else if(af(forward_position_size) == af(backward_position_size) && forward_position_size > 0.0){
-            handler_t1.adjust_rt(handler_t1.tap);
-            handler_t1.adjust_guide(forward_position_size);
-            handler_t2.adjust_rt(handler_t2.tap);
-            handler_t2.adjust_guide(forward_position_size - handler_t2.tap);
         }
     }
             //else if (handler_t1.D >= limit_size && handler_t2.D_std <= 0.0){
@@ -155,6 +149,44 @@ void OnTimer()
       Print("price ", ask_1, " ", bid_1, " ", tick_price);
       
     if (current_handler == "t"){
+    
+        if (af(forward_position_size) == af(backward_position_size))
+            current_orient = "biside";
+        else if (af(forward_position_size) > af(backward_position_size))
+            current_orient = "forward";
+        else if (af(backward_position_size) > af(forward_position_size))
+            current_orient = "backward";
+            
+        if (pre_orient != current_orient){
+            if (current_orient == "forward"){
+                handler_t1.current_side = "forward";
+                handler_t2.current_side = "backward";
+                if (handler_t2.D_std > 0.0){
+                    handler_t1.adjust_guide(forward_position_size);
+                    handler_t2.adjust_guide(backward_position_size);
+                }
+            }
+            else if (current_orient == "backward"){
+                handler_t1.current_side = "backward";
+                handler_t2.current_side = "forward";
+                if (handler_t2.D_std > 0.0){
+                    handler_t1.adjust_guide(backward_position_size);
+                    handler_t2.adjust_guide(forward_position_size);    
+                }        
+            }
+            else if (current_orient == "biside"){
+                if (handler_t1.D > 0.0){
+                    handler_t1.adjust_rt(handler_t1.tap);
+                    handler_t2.adjust_rt(handler_t2.tap);
+                    handler_t1.adjust_guide(handler_t1.D_std);
+                    handler_t2.adjust_guide(handler_t2.D_std);
+                    handler_t1.reset_St();
+                    handler_t2.reset_St();
+                }
+            }
+            pre_orient = current_orient;
+        }
+            
         if (handler_t1.get_flag() && handler_t2.get_flag()){
             get_handler();
             if (current_handler == "t"){
