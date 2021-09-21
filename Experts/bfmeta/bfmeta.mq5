@@ -211,14 +211,14 @@ void OnTradeTransaction(const MqlTradeTransaction& trans,
                         const MqlTradeResult& result)
   {
     ENUM_TRADE_TRANSACTION_TYPE type = (ENUM_TRADE_TRANSACTION_TYPE)trans.type;
-    if (type == TRADE_TRANSACTION_REQUEST){
-      if(result.deal != 0){
-         ulong ticket = result.deal;
-         HistoryDealSelect(ticket);
-         double profit = HistoryDealGetDouble(ticket,DEAL_PROFIT);
-         balance_overflow += profit;
-      }
-    }   
+    if (result.deal != 0){      
+        ulong ticket = result.deal;
+        HistoryDealSelect(ticket);       
+        double profit = HistoryDealGetDouble(ticket,DEAL_PROFIT);
+        ENUM_DEAL_REASON reason = HistoryDealGetInteger(ticket,DEAL_REASON);
+        if (reason == DEAL_REASON_EXPERT || reason == DEAL_REASON_SO)
+            balance_overflow += profit;
+    } 
   }
 //+------------------------------------------------------------------+
 //| Tester function                                                  |

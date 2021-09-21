@@ -78,6 +78,10 @@ bool Handler_T2::get_flag()
                 this.reset_St();
         }
     }
+    else if (cutoff(this.tap, 0, this.D, this.D_std, "red") > 0.0){
+        if ((this.current_side == "forward" && tick_price <= this.S_dn) || (this.current_side == "backward" && tick_price >= this.S_up))
+            this.reset_St();
+    }
 
     Print (this.tip, " ", this.current_side, " ", this.T_guide, " ", this.T_rt);
     Print ("St ", this.S_up, " ", this.S_dn);
@@ -105,7 +109,7 @@ bool Handler_T2::get_flag()
              if (this.current_side == "forward"){
                  this.forward_balance_size = af(MathMin(cutoff(this.tap,0,this.D,this.D_std,"red"), forward_first_volume));
                  this.forward_balance_ticket = forward_first_position;
-                 Print ("d1 ", this.D_std-this.D, " ", forward_first_volume);
+                 Print ("d1 ", this.D-this.D_std, " ", forward_first_volume);
              }
          }
      }
@@ -114,7 +118,7 @@ bool Handler_T2::get_flag()
              if (this.current_side == "backward"){
                  this.backward_balance_size = af(MathMin(cutoff(this.tap,0,this.D,this.D_std,"red"), backward_first_volume));
                  this.backward_balance_ticket = backward_first_position;
-                 Print ("d3 ", this.D_std-this.D, " ", backward_first_volume);
+                 Print ("d3 ", this.D-this.D_std, " ", backward_first_volume);
              }
          }
     }
@@ -130,7 +134,7 @@ bool Handler_T2::get_flag()
                 {
                     this.backward_catch = true;
                     this.backward_catch_size = af(MathMin(cutoff(this.tap, 0, this.D, this.D_std, "inc"),limit_size - backward_position_size));
-                    Print ("b2 ", this.D - this.D_std, " ", limit_size - backward_position_size);
+                    Print ("b2 ", this.D_std - this.D, " ", limit_size - backward_position_size);
                 }
         }
         else if (this.current_side == "forward"){
@@ -139,7 +143,7 @@ bool Handler_T2::get_flag()
                 {
                     this.forward_catch = true;
                     this.forward_catch_size = af(MathMin(cutoff(this.tap, 0, this.D, this.D_std, "inc"),limit_size - forward_position_size));
-                    Print ("b4 ", this.D - this.D_std, " ", limit_size - forward_position_size);
+                    Print ("b4 ", this.D_std - this.D, " ", limit_size - forward_position_size);
                 }
         }
     }
