@@ -64,7 +64,7 @@ void get_handler()
         }
     }
     else if (current_handler == "t"){
-        if (af(forward_position_size) == af(backward_position_size) && margin > 0.0){
+        if (tick_price <= 0.0){
             handler_w = Handler_W();
             current_handler = "w";
         }

@@ -39,7 +39,7 @@ Handler_T2::Handler_T2(string side)
     this.tip = "t2";
     this.current_side = side;
     this.tap = _tap;
-    this.T_guide = -limit_size;
+    this.T_guide = 0.0;
     this.T_rt = 0.0;
     this.pre_D = 0.0;
   }
