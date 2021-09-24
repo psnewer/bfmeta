@@ -62,7 +62,7 @@ bool Handler_T1::get_flag()
         this.reset_St();
     }
 
-    this.D_std = this.T_guide + goods_rt * this.T_rt;
+    this.D_std = this.T_guide - goods_rt * this.T_rt;
 
     if (cutoff(this.tap,0,this.D,this.D_std,"inc") == 0.0){
         if (af(this.pre_D) != af(this.D)){
@@ -70,9 +70,9 @@ bool Handler_T1::get_flag()
             this.reset_St();
         }
     }
-    else if (cutoff(this.tap, 0, this.D, this.D_std, "inc") > 0.0){
-        if ((this.current_side == "forward" && tick_price <= this.S_dn) || (this.current_side == "backward" && tick_price >= this.S_up))
-            this.reset_St();
+    if (this.D_std < this.D){
+        this.adjust_guide(this.D);
+        this.reset_St();
     }
   
     Print (this.tip, " ", this.current_side, " ", this.T_guide, " ", this.T_rt," ",tick_price / (d1_hl * T_level));
@@ -122,7 +122,7 @@ bool Handler_T1::get_flag()
     if (true){
         if (this.current_side == "backward"){
             if (forward_stable_price && this.D < this.D_std){
-                if ((tick_price <= this.S_dn && backward_position_size > 0.0) || (tick_price <= this._S_dn && backward_position_size == 0.0)){
+                if ((tick_price >= this.S_up && backward_position_size > 0.0) || (backward_position_size == 0.0)){
                     this.backward_catch = true;
                     this.backward_catch_size = af(MathMin(cutoff(this.tap, 0, this.D, this.D_std, "inc"),limit_size - backward_position_size));
                     Print ("b2 ", this.D_std - this.D, " ", limit_size - backward_position_size);
@@ -131,7 +131,7 @@ bool Handler_T1::get_flag()
         }
         else if (this.current_side == "forward"){
             if (backward_stable_price && this.D < this.D_std){
-                if ((tick_price >= this.S_up && forward_position_size > 0.0)|| (tick_price >= this._S_up && forward_position_size == 0.0)){
+                if ((tick_price <= this.S_dn && forward_position_size > 0.0)|| (forward_position_size == 0.0)){
                     this.forward_catch = true;
                     this.forward_catch_size = af(MathMin(cutoff(this.tap, 0, this.D, this.D_std, "inc"),limit_size - forward_position_size));
                     Print ("b4 ", this.D_std - this.D, " ", limit_size - forward_position_size);
