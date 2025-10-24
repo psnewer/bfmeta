@@ -8,17 +8,11 @@
 #include <Handler.mqh>
 #include <Handler_T1.mqh>
 #include <Handler_T2.mqh>
-#include <Handler_W.mqh>
-#include <Handler_A.mqh>
 //--- input parameters
 
 
-Handler handler;
-Handler_T1 handler_t1("forward");
-Handler_T2 handler_t2("backward");
-Handler_A handler_a;
-Handler_W handler_w;
-string current_handler;
+Handler_T1 handler_t();
+string current_handler = "t";
 
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
@@ -55,61 +49,14 @@ void OnTick()
 //+------------------------------------------------------------------+
 void get_handler()
   {
-    if (current_handler == "w"){
-        if (forward_position_size == 0 && backward_position_size == 0){
+    if (current_handler == "t"){
+        if(af(forward_position_size) == af(backward_position_size) && MathAbs(first_price - tick_price) >= m5_hl){
             balance_overflow = 0.0;
-            handler_t1 = Handler_T1("forward");
-            handler_t2 = Handler_T2("backward");
+            handler_t = Handler_T1(_tap);
+            first_price = tick_price;
             current_handler = "t";
         }
     }
-    else if (current_handler == "t"){
-        if (af(forward_position_size) == af(backward_position_size) && margin > 0.0){
-            handler_w = Handler_W();
-            current_handler = "w";
-        }
-        else if(af(forward_position_size) == af(backward_position_size) && forward_position_size > 0.0){
-            handler_t1.adjust_rt(handler_t1.tap);
-            handler_t1.adjust_guide(forward_position_size);
-            handler_t2.adjust_rt(handler_t2.tap);
-            handler_t2.adjust_guide(forward_position_size - handler_t2.tap);
-        }
-    }
-            //else if (handler_t1.D >= limit_size && handler_t2.D_std <= 0.0){
-            //    if (handler_t1.forward_catch || handler_t1.backward_catch)
-            //        if (stable_spread){
-            //            //if (handler_t1.alert_rt()){
-            //            //    handler_w = Handler_W();
-            //            //    current_handler = "w";
-            //            //}else{
-            //                  handler_a = Handler_A();
-            //                  handler_a.current_side = handler_t2.current_side;
-            //                  current_handler = "a";
-            //            //}
-            //        }
-            //}
-    //}
-    //else if (current_handler == "a"){
-    //        if (af(handler_a.D) == handler_a.D_std){
-    //            if (forward_position_size > backward_position_size){
-    //                handler_t1 = Handler_T1("forward");
-    //                handler_t2 = Handler_T2("backward");
-    //                handler_t1.adjust_rt(forward_position_size - backward_position_size);
-    //                handler_t1.adjust_guide(forward_position_size);
-    //                handler_t2.adjust_rt(backward_position_size / (forward_position_size - backward_position_size) * _tap);
-    //                handler_t2.adjust_guide(backward_position_size);
-    //            }
-    //            else{
-    //                handler_t1 = Handler_T1("backward");
-    //                handler_t2 = Handler_T2("forward");
-    //                handler_t1.adjust_rt(2.0*(backward_position_size - forward_position_size));
-    //                handler_t1.adjust_guide(backward_position_size);
-    //                handler_t2.adjust_rt(2.0*forward_position_size / (backward_position_size - forward_position_size) * _tap);
-    //                handler_t2.adjust_guide(forward_position_size);
-    //            }
-    //            current_handler = "t";
-    //        }
-    //}
   }
  //+------------------------------------------------------------------+
 //| Timer function                                                   |
@@ -125,6 +72,9 @@ void OnTimer()
     int total=PositionsTotal();
     for (int i=total-1; i>=0; i--){
         ulong ticket = PositionGetTicket(i);
+        string symbol = PositionGetString(POSITION_SYMBOL);
+        if (symbol != target_symbol)
+            continue;
         double size = PositionGetDouble(POSITION_VOLUME);
         double price_open = PositionGetDouble(POSITION_PRICE_OPEN);
         double profit = PositionGetDouble(POSITION_PROFIT);
@@ -152,47 +102,27 @@ void OnTimer()
       bid_1 = SymbolInfoDouble(Symbol(),SYMBOL_BID);
       ask_1 = SymbolInfoDouble(Symbol(),SYMBOL_ASK);
       tick_price = (bid_1 + ask_1) / 2.0;
+      if (first_price == 0.0)
+         first_price = tick_price;
       Print("price ", ask_1, " ", bid_1, " ", tick_price);
       
     if (current_handler == "t"){
-        if (handler_t1.get_flag() && handler_t2.get_flag()){
+    Print("0000");
+        if (handler_t.get_flag()){
+        Print("1111");
             get_handler();
             if (current_handler == "t"){
                 Print("aaaa ", TimeCurrent(), " ", current_handler);
-                Print(balance_overflow, " ", margin, " ", goods_rt);
+                Print(balance_overflow, " ", margin);
                 if (stable_spread){
-                    if (handler_t1.forward_balance_size >= _tap || handler_t1.forward_catch_size >= _tap || handler_t1.backward_balance_size >= _tap || handler_t1.backward_catch_size >= _tap)
-                        handler_t1.put_position();
-                    else
-                        handler_t2.put_position();
+                    if (handler_t.balance_size >= _tap || handler_t.catch_size >= _tap)
+                        //handler_t.put_position();
+                        Print ("put a position");
                    }
                }
             }
         else
-            Print ("qqqq", " ", GetLastError());
-     }
-     else if (current_handler == "w"){
-             handler_w.get_flag();
-             get_handler();
-             if (current_handler == "w"){
-                 Print("aaaa ", TimeCurrent(), " ", current_handler);
-                 Print(balance_overflow, " ", margin, " ", goods_rt);
-                 if (stable_spread)
-                     handler_w.put_position();
-             } 
-     }
-     else if (current_handler == "a"){
-         if (handler_a.get_flag()){
-             get_handler();
-             if (current_handler == "a"){
-                 Print("aaaa ", TimeCurrent(), " ", current_handler);
-                 Print(balance_overflow, " ", margin, " ", goods_rt);
-                 if (stable_spread)
-                     handler_a.put_position();
-             }
-         }
-         else
-             Print ("qqqq ",GetLastError());
+            Print ("eeee", " ", GetLastError());
      }
    
   }
