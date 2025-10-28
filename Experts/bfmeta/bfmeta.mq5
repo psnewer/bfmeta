@@ -10,9 +10,9 @@
 #include <Handler_T2.mqh>
 //--- input parameters
 
+Handler* handler_t;
 
-Handler_T1 handler_t();
-string current_handler = "t";
+//Handler_T1 handler_t(T_guide);
 
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
@@ -20,12 +20,16 @@ string current_handler = "t";
 int OnInit()
   {
 //--- create timer
-   current_handler = "t";
    T_level = AccountInfoInteger(ACCOUNT_LEVERAGE);
    unit = SymbolInfoDouble(Symbol(),SYMBOL_TRADE_CONTRACT_SIZE);
    symbol_order_mode = (int)SymbolInfoInteger(Symbol(),SYMBOL_ORDER_MODE);
    
    EventSetTimer(60); 
+   
+   if (current_side == "forward")
+      handler_t = new Handler_T1(T_guide);
+   else 
+      handler_t = new Handler_T2(T_guide);
 //---
    return(INIT_SUCCEEDED);
   }
@@ -49,14 +53,14 @@ void OnTick()
 //+------------------------------------------------------------------+
 void get_handler()
   {
-    if (current_handler == "t"){
-        if(af(forward_position_size) == af(backward_position_size) && MathAbs(first_price - tick_price) >= m5_hl){
+        if(af(forward_position_size) == af(backward_position_size) && balance_overflow > 0.0){
             balance_overflow = 0.0;
-            handler_t = Handler_T1(_tap);
             first_price = tick_price;
-            current_handler = "t";
+            if (current_side == "forward")
+               handler_t = new Handler_T1(T_guide);
+            else 
+               handler_t = new Handler_T2(T_guide);
         }
-    }
   }
  //+------------------------------------------------------------------+
 //| Timer function                                                   |
@@ -73,7 +77,7 @@ void OnTimer()
     for (int i=total-1; i>=0; i--){
         ulong ticket = PositionGetTicket(i);
         string symbol = PositionGetString(POSITION_SYMBOL);
-        if (symbol != target_symbol)
+        if (symbol != _Symbol)
             continue;
         double size = PositionGetDouble(POSITION_VOLUME);
         double price_open = PositionGetDouble(POSITION_PRICE_OPEN);
@@ -102,28 +106,27 @@ void OnTimer()
       bid_1 = SymbolInfoDouble(Symbol(),SYMBOL_BID);
       ask_1 = SymbolInfoDouble(Symbol(),SYMBOL_ASK);
       tick_price = (bid_1 + ask_1) / 2.0;
+      
       if (first_price == 0.0)
          first_price = tick_price;
-      Print("price ", ask_1, " ", bid_1, " ", tick_price);
+         
+      Print("price ", ask_1, " ", bid_1, " ", tick_price, " ", first_price);
       
-    if (current_handler == "t"){
-    Print("0000");
         if (handler_t.get_flag()){
-        Print("1111");
             get_handler();
-            if (current_handler == "t"){
-                Print("aaaa ", TimeCurrent(), " ", current_handler);
-                Print(balance_overflow, " ", margin);
+                Print(balance_overflow, " ", margin, " ", stable_spread);
                 if (stable_spread){
                     if (handler_t.balance_size >= _tap || handler_t.catch_size >= _tap)
-                        //handler_t.put_position();
-                        Print ("put a position");
+                        if (all_in){
+                            if (handler_t.D_std <= 0.0)
+                                handler_t.put_position();
+                        }  
+                        else
+                            handler_t.put_position();
                    }
-               }
             }
         else
             Print ("eeee", " ", GetLastError());
-     }
    
   }
 //+------------------------------------------------------------------+

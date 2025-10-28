@@ -13,13 +13,9 @@
 class Handler_T1: public Handler
   {
 public:
-    double tap;
-    double T_guide;
-    double D;
-    double D_std;
     
-    bool get_flag();
-    void put_position();
+    virtual bool get_flag() override;
+    virtual void put_position() override;
     
     void adjust_guide(double D_std);
     
@@ -36,16 +32,15 @@ bool Handler_T1::get_flag()
 
     this.D = forward_position_size;
 
-    this.D_std = this.D; 
-    if (first_price > 0.0)
-        this.D_std = this.T_guide - (tick_price - first_price) / m5_hl;
-    
-    if (this.D_std < this.D && this.D == 0.0){
-        this.adjust_guide(this.D);
+    if (tick_price > first_price && this.D == 0.0){
+        first_price = tick_price;
     }
     
-    Print (this.tip, " ", this.T_guide);
-    Print (this.D, " ", this.D_std);
+    this.D_std = this.D; 
+    if (first_price > 0.0)
+        this.D_std = this.T_guide - (tick_price - first_price) / m5_hl * this.tap;
+    
+    Print (this.tip, " ", this.D, " ", this.D_std);
 
     this.gap_balance = false;
     this.balance_size = 0;
@@ -54,7 +49,7 @@ bool Handler_T1::get_flag()
         if (stable_spread && this.D > this.D_std)
             this.gap_balance = true;
     }
-       
+
     if (this.gap_balance){
         if (forward_position_size > 0.0){
                 this.balance_size = af(MathMin(cutoff(this.tap,0,this.D,this.D_std,"red"), forward_first_volume));
@@ -126,7 +121,9 @@ void Handler_T1::put_position(void)
                   request.volume = this.catch_size;
                   request.price = ask_1;
                   request.deviation = 0;
+                  request.type_filling = ORDER_FILLING_IOC;
                   request.magic = 0;
+                  Print("1111");
                   OrderSend(request,result);
              }
           }
@@ -142,6 +139,7 @@ void Handler_T1::put_position(void)
                       request.volume = this.balance_size;
                       request.price = bid_1;
                       request.deviation = 0;
+                      request.type_filling = ORDER_FILLING_IOC;
                       request.magic = 1000;            
                          OrderSend(request,result);
                      }
@@ -153,7 +151,7 @@ void Handler_T1::put_position(void)
 //+------------------------------------------------------------------+
 void Handler_T1::adjust_guide(double D_std)
   {
-    this.T_guide += D_std - (this.T_guide - (tick_price - first_price) / m5_hl);
+    this.T_guide += D_std - (this.T_guide - (tick_price - first_price) / m5_hl * this.tap);
     this.D_std = D_std;
   }
 //+------------------------------------------------------------------+

@@ -13,13 +13,9 @@
 class Handler_T2 : public Handler
   {
 public:
-    double tap;
-    double T_guide;
-    double D;
-    double D_std;
     
-    bool get_flag();
-    void put_position();
+    virtual bool get_flag() override;
+    virtual void put_position() override;
     
     void adjust_guide(double D_std);
     
@@ -32,7 +28,7 @@ Handler_T2::Handler_T2(double init_tap)
   {
     this.tip = "t2";
     this.tap = _tap;
-    this.T_guide = -limit_size;
+    this.T_guide = init_tap;
   }
 //+------------------------------------------------------------------+
 bool Handler_T2::get_flag()
@@ -44,16 +40,16 @@ bool Handler_T2::get_flag()
     this.get_std_flag();
 
     this.D = backward_position_size;
-
-    if (first_price > 0.0)
-        this.D_std = this.T_guide - (first_price - tick_price) / m5_hl;
     
-    if (this.D_std < this.D && this.D == 0.0){
-        this.adjust_guide(this.D);
+    if (tick_price < first_price && this.D == 0.0){
+        first_price = tick_price;
     }
 
-    Print (this.tip, " ", this.T_guide);
-    Print (this.D, " ", this.D_std);
+    this.D_std = this.D; 
+    if (first_price > 0.0)
+        this.D_std = this.T_guide - (first_price - tick_price) / m5_hl * this.tap;
+
+    Print (this.tip, " ", this.D, " ", this.D_std);
 
     this.gap_balance = false;
     this.balance_size = 0;
@@ -127,6 +123,7 @@ void Handler_T2::put_position(void)
                   request.volume = this.catch_size;
                   request.price = bid_1;
                   request.deviation = 0;
+                  request.type_filling = ORDER_FILLING_IOC;
                   request.magic = 0;
                   OrderSend(request,result);
               }
@@ -143,6 +140,7 @@ void Handler_T2::put_position(void)
                       request.volume = this.balance_size;
                       request.price = ask_1;
                       request.deviation = 0;
+                      request.type_filling = ORDER_FILLING_IOC;
                       request.magic = 1000;
                       OrderSend(request,result);
                   }
@@ -154,7 +152,7 @@ void Handler_T2::put_position(void)
 //+------------------------------------------------------------------+
 void Handler_T2::adjust_guide(double D_std)
   {
-    this.T_guide += D_std - (this.T_guide - (first_price - tick_price) / m5_hl);
+    this.T_guide += D_std - (this.T_guide - (first_price - tick_price) / m5_hl * this.tap);
     this.D_std = D_std;
   }
 //+------------------------------------------------------------------+
