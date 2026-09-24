@@ -123,7 +123,7 @@ void Handler_T1::put_position(void)
                   request.deviation = 0;
                   request.type_filling = ORDER_FILLING_IOC;
                   request.magic = 0;
-                  Print("1111");
+                  Print("1111",this.catch_size);
                   OrderSend(request,result);
              }
           }
